@@ -1,0 +1,31 @@
+---
+interface Props {
+  src: ImageMetadata | string;
+  alt: string;
+  caption?: string;
+  /** Let the image breathe past the text measure. */
+  wide?: boolean;
+}
+
+const { src, alt, caption, wide = false } = Astro.props;
+const url = typeof src === 'string' ? src : src.src;
+const dimensions =
+  typeof src === 'string' ? {} : { width: src.width, height: src.height };
+---
+
+<figure class:list={['figure', wide && 'figure--wide']}>
+  <img src={url} alt={alt} loading="lazy" decoding="async" {...dimensions} />
+  {caption && <figcaption>{caption}</figcaption>}
+</figure>
+
+<style>
+  .figure {
+    margin-block: var(--space-l);
+  }
+
+  /* Breaks the measure symmetrically, and only where there is room. */
+  .figure--wide {
+    width: min(var(--measure-wide), 100vw - 2 * var(--gutter));
+    margin-inline: calc(50% - min(var(--measure-wide), 100vw - 2 * var(--gutter)) / 2);
+  }
+</style>

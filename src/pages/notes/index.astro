@@ -1,0 +1,23 @@
+---
+import Base from '../../layouts/Base.astro';
+import EntryList, { type Entry } from '../../components/EntryList.astro';
+import { getNotes, formatDate, isoDate } from '../../lib/content';
+
+const notes = await getNotes();
+const entries: Entry[] = notes.map((note) => ({
+  href: `/notes/${note.id}/`,
+  title: note.data.title,
+  description: note.data.description,
+  datetime: isoDate(note.data.updated),
+  meta: `${note.data.maturity} · updated ${formatDate(note.data.updated)}`,
+}));
+---
+
+<Base title="Notes" description="Evergreen notes, revised as I learn more.">
+  <h1 class="page-title">Notes</h1>
+  <p class="page-intro">
+    Working notes rather than finished pieces. These get revised in place, so they carry a
+    maturity and a last-updated date instead of a publication date.
+  </p>
+  <EntryList entries={entries} empty="No notes yet." />
+</Base>

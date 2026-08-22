@@ -1,0 +1,20 @@
+---
+import Base from '../../layouts/Base.astro';
+import EntryList, { type Entry } from '../../components/EntryList.astro';
+import { getEssays, formatDate, isoDate } from '../../lib/content';
+
+const essays = await getEssays();
+const entries: Entry[] = essays.map((essay) => ({
+  href: `/writing/${essay.id}/`,
+  title: essay.data.title,
+  description: essay.data.description,
+  datetime: isoDate(essay.data.pubDate),
+  meta: formatDate(essay.data.pubDate),
+}));
+---
+
+<Base title="Writing" description="Essays and longer pieces.">
+  <h1 class="page-title">Writing</h1>
+  <p class="page-intro">Longer pieces, finished and dated.</p>
+  <EntryList entries={entries} empty="No essays published yet." />
+</Base>

@@ -1,0 +1,30 @@
+---
+import type { GetStaticPaths } from 'astro';
+import { render } from 'astro:content';
+import Prose from '../../layouts/Prose.astro';
+import { getEssays, formatDate, isoDate } from '../../lib/content';
+
+export const getStaticPaths = (async () => {
+  const essays = await getEssays();
+  return essays.map((essay) => ({ params: { slug: essay.id }, props: { essay } }));
+}) satisfies GetStaticPaths;
+
+const { essay } = Astro.props;
+const { Content } = await render(essay);
+const { title, description, pubDate, updatedDate, tags } = essay.data;
+
+const dateline = updatedDate
+  ? `${formatDate(pubDate)} · updated ${formatDate(updatedDate)}`
+  : formatDate(pubDate);
+---
+
+<Prose
+  title={title}
+  description={description}
+  dateline={dateline}
+  datetime={isoDate(pubDate)}
+  tags={tags}
+  article={{ published: pubDate, modified: updatedDate }}
+>
+  <Content />
+</Prose>

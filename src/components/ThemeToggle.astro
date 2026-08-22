@@ -1,0 +1,98 @@
+<button
+  class="theme-toggle"
+  type="button"
+  data-theme-toggle
+  aria-label="Switch between light and dark theme"
+  title="Switch theme"
+>
+  <svg class="theme-toggle__sun" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <circle cx="12" cy="12" r="4.2"></circle>
+    <path d="M12 2.4v2.6M12 19v2.6M4.2 4.2l1.9 1.9M17.9 17.9l1.9 1.9M2.4 12H5M19 12h2.6M4.2 19.8l1.9-1.9M17.9 6.1l1.9-1.9"></path>
+  </svg>
+  <svg class="theme-toggle__moon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <path d="M20 14.2A8.2 8.2 0 0 1 9.8 4a8.4 8.4 0 1 0 10.2 10.2Z"></path>
+  </svg>
+</button>
+
+<style>
+  .theme-toggle {
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    background: none;
+    border: 0;
+    border-radius: 999px;
+    color: var(--ink-muted);
+    cursor: pointer;
+  }
+
+  .theme-toggle:hover {
+    color: var(--ink);
+    background-color: var(--ground-sunk);
+  }
+
+  .theme-toggle svg {
+    grid-area: 1 / 1;
+    width: 1.05rem;
+    height: 1.05rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* Show the icon for the theme you would switch *to*. */
+  .theme-toggle__sun {
+    display: none;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) .theme-toggle__sun {
+      display: block;
+    }
+    :root:not([data-theme='light']) .theme-toggle__moon {
+      display: none;
+    }
+  }
+
+  :root[data-theme='dark'] .theme-toggle__sun {
+    display: block;
+  }
+
+  :root[data-theme='dark'] .theme-toggle__moon {
+    display: none;
+  }
+
+  :root[data-theme='light'] .theme-toggle__sun {
+    display: none;
+  }
+
+  :root[data-theme='light'] .theme-toggle__moon {
+    display: block;
+  }
+</style>
+
+<script>
+  const root = document.documentElement;
+
+  const currentTheme = () =>
+    root.dataset.theme ??
+    (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+
+  document.querySelectorAll<HTMLButtonElement>('[data-theme-toggle]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const next = currentTheme() === 'dark' ? 'light' : 'dark';
+      root.dataset.theme = next;
+      try {
+        localStorage.setItem('theme', next);
+      } catch {
+        /* storage unavailable — the choice just won't persist */
+      }
+      // Let client-rendered content (Mermaid) restyle itself.
+      window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: next } }));
+    });
+  });
+</script>

@@ -1,0 +1,85 @@
+---
+/*
+ * Renders ```mermaid fences on the page.
+ *
+ * Client-side by design: the build-time options (rehype-mermaid and friends)
+ * need a headless browser in CI, and they are remark/rehype plugins besides,
+ * which this site's Sätteri pipeline does not run. Include this component only
+ * on pages that actually contain a diagram.
+ */
+---
+
+<script>
+  import type { Mermaid } from 'mermaid';
+
+  const SOURCE_ATTR = 'data-mermaid-source';
+
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+
+  const isDark = () => {
+    const explicit = document.documentElement.dataset.theme;
+    return explicit ? explicit === 'dark' : prefersDark.matches;
+  };
+
+  let mermaid: Mermaid | undefined;
+  let counter = 0;
+
+  /** Take over the highlighted <pre> blocks, keeping the source for re-renders. */
+  function collect(): HTMLElement[] {
+    document.querySelectorAll<HTMLElement>('pre[data-language="mermaid"]').forEach((pre) => {
+      const figure = document.createElement('figure');
+      figure.className = 'mermaid-figure';
+      figure.setAttribute(SOURCE_ATTR, pre.textContent ?? '');
+      pre.replaceWith(figure);
+    });
+    return [...document.querySelectorAll<HTMLElement>(`[${SOURCE_ATTR}]`)];
+  }
+
+  async function render(): Promise<void> {
+    const figures = collect();
+    if (figures.length === 0) return;
+
+    mermaid ??= (await import('mermaid')).default;
+    mermaid.initialize({
+      startOnLoad: false,
+      securityLevel: 'strict',
+      theme: isDark() ? 'dark' : 'neutral',
+      fontFamily: 'inherit',
+    });
+
+    for (const figure of figures) {
+      const source = figure.getAttribute(SOURCE_ATTR) ?? '';
+      try {
+        const { svg } = await mermaid.render(`mermaid-${counter++}`, source);
+        figure.innerHTML = svg;
+      } catch (error) {
+        // A broken diagram shows its source rather than blanking the page.
+        const pre = document.createElement('pre');
+        pre.textContent = source;
+        figure.replaceChildren(pre);
+        console.error('Mermaid failed to render a diagram:', error);
+      }
+    }
+  }
+
+  void render();
+
+  // Mermaid bakes colours into the SVG, so a theme change needs a re-render.
+  window.addEventListener('themechange', () => void render());
+  prefersDark.addEventListener('change', () => {
+    if (!document.documentElement.dataset.theme) void render();
+  });
+</script>
+
+<style is:global>
+  .mermaid-figure {
+    margin-block: var(--space-l);
+    overflow-x: auto;
+  }
+
+  .mermaid-figure svg {
+    max-width: 100%;
+    height: auto;
+    margin-inline: auto;
+  }
+</style>

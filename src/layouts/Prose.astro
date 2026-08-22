@@ -1,0 +1,91 @@
+---
+import Base from './Base.astro';
+import Mermaid from '../components/Mermaid.astro';
+
+interface Props {
+  title: string;
+  description?: string;
+  /** Rendered under the title, e.g. "12 March 2026" or "Updated 3 June 2026". */
+  dateline?: string;
+  datetime?: string;
+  tags?: readonly string[];
+  article?: { published: Date; modified?: Date };
+}
+
+const { title, description, dateline, datetime, tags = [], article } = Astro.props;
+---
+
+<Base title={title} description={description} article={article}>
+  <article class="prose">
+    <header class="article-header">
+      <h1>{title}</h1>
+      {
+        dateline &&
+          (datetime ? (
+            <time class="article-header__dateline" datetime={datetime}>
+              {dateline}
+            </time>
+          ) : (
+            <p class="article-header__dateline">{dateline}</p>
+          ))
+      }
+    </header>
+
+    <slot />
+
+    {
+      tags.length > 0 && (
+        <footer class="article-tags">
+          <h2 class="sr-only">Tags</h2>
+          <ul>
+            {tags.map((tag) => (
+              <li>{tag}</li>
+            ))}
+          </ul>
+        </footer>
+      )
+    }
+  </article>
+
+  <Mermaid />
+</Base>
+
+<style>
+  .article-header {
+    margin-block-end: var(--space-xl);
+  }
+
+  .article-header h1 {
+    font-size: var(--text-title);
+    letter-spacing: -0.012em;
+  }
+
+  .article-header__dateline {
+    display: block;
+    margin-block-start: var(--space-xs);
+    font-size: var(--text-xs);
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    font-variant-numeric: lining-num;
+  }
+
+  .article-tags {
+    margin-block-start: var(--space-xl);
+    padding-block-start: var(--space-m);
+    border-block-start: 1px solid var(--rule);
+  }
+
+  .article-tags ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2xs) var(--space-s);
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--ink-faint);
+  }
+</style>

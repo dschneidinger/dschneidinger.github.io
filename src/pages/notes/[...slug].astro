@@ -1,0 +1,28 @@
+---
+import type { GetStaticPaths } from 'astro';
+import { render } from 'astro:content';
+import Prose from '../../layouts/Prose.astro';
+import { getNotes, formatDate, isoDate } from '../../lib/content';
+
+export const getStaticPaths = (async () => {
+  const notes = await getNotes();
+  return notes.map((note) => ({ params: { slug: note.id }, props: { note } }));
+}) satisfies GetStaticPaths;
+
+const { note } = Astro.props;
+const { Content } = await render(note);
+const { title, description, started, updated, maturity, tags } = note.data;
+
+const dateline = `${maturity} · started ${formatDate(started)} · updated ${formatDate(updated)}`;
+---
+
+<Prose
+  title={title}
+  description={description}
+  dateline={dateline}
+  datetime={isoDate(updated)}
+  tags={tags}
+  article={{ published: started, modified: updated }}
+>
+  <Content />
+</Prose>

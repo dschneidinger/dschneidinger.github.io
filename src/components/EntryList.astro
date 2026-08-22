@@ -1,0 +1,95 @@
+---
+export interface Entry {
+  href: string;
+  title: string;
+  description?: string;
+  /** Machine-readable date for <time datetime>. */
+  datetime?: string;
+  /** Human-readable date or status, shown beside the title. */
+  meta?: string;
+}
+
+interface Props {
+  entries: Entry[];
+  empty?: string;
+}
+
+const { entries, empty = 'Nothing here yet.' } = Astro.props;
+---
+
+{
+  entries.length === 0 ? (
+    <p class="entry-list__empty">{empty}</p>
+  ) : (
+    <ul class="entry-list">
+      {entries.map((entry) => (
+        <li class="entry">
+          <h2 class="entry__title">
+            <a href={entry.href}>{entry.title}</a>
+          </h2>
+          {entry.description && <p class="entry__description">{entry.description}</p>}
+          {entry.meta &&
+            (entry.datetime ? (
+              <time class="entry__meta" datetime={entry.datetime}>
+                {entry.meta}
+              </time>
+            ) : (
+              <p class="entry__meta">{entry.meta}</p>
+            ))}
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+<style>
+  .entry-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .entry + .entry {
+    margin-block-start: var(--space-l);
+    padding-block-start: var(--space-l);
+    border-block-start: 1px solid var(--rule);
+  }
+
+  .entry__title {
+    font-size: var(--text-h3);
+    font-weight: 600;
+    text-wrap: balance;
+  }
+
+  .entry__title a {
+    color: var(--ink);
+    text-decoration-color: var(--rule);
+    text-underline-offset: 0.18em;
+  }
+
+  .entry__title a:hover {
+    color: var(--accent);
+    text-decoration-color: currentColor;
+  }
+
+  .entry__description {
+    margin-block-start: var(--space-3xs);
+    color: var(--ink-muted);
+    text-wrap: pretty;
+  }
+
+  .entry__meta {
+    display: block;
+    margin-block-start: var(--space-2xs);
+    font-size: var(--text-xs);
+    color: var(--ink-faint);
+    font-variant-numeric: lining-num;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+
+  .entry-list__empty {
+    color: var(--ink-muted);
+    font-style: italic;
+  }
+</style>

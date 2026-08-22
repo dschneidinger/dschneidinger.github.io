@@ -1,0 +1,75 @@
+---
+import Base from '../layouts/Base.astro';
+import EntryList, { type Entry } from '../components/EntryList.astro';
+import { getEssays, getNotes, formatDate, isoDate } from '../lib/content';
+
+const [essays, notes] = await Promise.all([getEssays(), getNotes()]);
+
+const recentEssays: Entry[] = essays.slice(0, 4).map((essay) => ({
+  href: `/writing/${essay.id}/`,
+  title: essay.data.title,
+  description: essay.data.description,
+  datetime: isoDate(essay.data.pubDate),
+  meta: formatDate(essay.data.pubDate),
+}));
+
+const recentNotes: Entry[] = notes.slice(0, 4).map((note) => ({
+  href: `/notes/${note.id}/`,
+  title: note.data.title,
+  description: note.data.description,
+  datetime: isoDate(note.data.updated),
+  meta: `${note.data.maturity} · updated ${formatDate(note.data.updated)}`,
+}));
+---
+
+<Base>
+  <section class="intro">
+    <p>
+      I'm David — I write mostly about physics, and about how understanding gets built and kept.
+      Longer pieces live in <a href="/writing">writing</a>; rougher, evolving material lives in
+      <a href="/notes">notes</a>.
+    </p>
+  </section>
+
+  <section class="home-section">
+    <h2 class="home-section__heading">Recent writing</h2>
+    <EntryList entries={recentEssays} empty="No essays published yet." />
+    {essays.length > recentEssays.length && (
+      <p class="home-section__more"><a href="/writing">All writing →</a></p>
+    )}
+  </section>
+
+  <section class="home-section">
+    <h2 class="home-section__heading">Recent notes</h2>
+    <EntryList entries={recentNotes} empty="No notes yet." />
+    {notes.length > recentNotes.length && (
+      <p class="home-section__more"><a href="/notes">All notes →</a></p>
+    )}
+  </section>
+</Base>
+
+<style>
+  .intro {
+    max-width: 58ch;
+    margin-block-end: var(--space-2xl);
+    text-wrap: pretty;
+  }
+
+  .home-section + .home-section {
+    margin-block-start: var(--space-2xl);
+  }
+
+  .home-section__heading {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-faint);
+    margin-block-end: var(--space-m);
+  }
+
+  .home-section__more {
+    margin-block-start: var(--space-m);
+    font-size: var(--text-sm);
+  }
+</style>

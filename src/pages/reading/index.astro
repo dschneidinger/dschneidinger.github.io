@@ -1,0 +1,20 @@
+---
+import Base from '../../layouts/Base.astro';
+import EntryList, { type Entry } from '../../components/EntryList.astro';
+import { getReading, formatDate, isoDate } from '../../lib/content';
+
+const reading = await getReading();
+const entries: Entry[] = reading.map((item) => ({
+  href: `/reading/${item.id}/`,
+  title: item.data.title,
+  description: item.data.description,
+  datetime: isoDate(item.data.dateRead),
+  meta: `${item.data.author} · ${formatDate(item.data.dateRead)}`,
+}));
+---
+
+<Base title="Reading" description="Notes on books and papers.">
+  <h1 class="page-title">Reading</h1>
+  <p class="page-intro">Notes on books and papers, kept mainly so I remember them.</p>
+  <EntryList entries={entries} empty="No reading notes yet." />
+</Base>
