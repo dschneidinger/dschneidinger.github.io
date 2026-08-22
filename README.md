@@ -13,9 +13,31 @@ npm run preview    # serve the built site
 npx astro check    # typecheck
 ```
 
-## Writing
+## Everything you edit is Markdown
 
-Content lives in `src/content/`, one directory per collection:
+All text on the site lives in `src/content/`. You should never need to open an
+`.astro`, `.ts`, or `.css` file to change wording, navigation, or page content.
+
+```
+src/content/
+  site.md              site title, description, author, nav, footer links
+  pages/
+    home.md            the homepage intro paragraph
+    writing.md         heading + intro for /writing
+    notes.md           heading + intro for /notes
+    reading.md         heading + intro for /reading
+    about.md           the whole /about page
+    projects.md        the whole /projects page
+    not-found.md       the 404 page
+  essays/              -> /writing/:slug
+  notes/               -> /notes/:slug
+  reading/             -> /reading/:slug
+```
+
+Navigation and footer links are the `nav:` and `links:` lists in
+`src/content/site.md` — add, remove, or reorder the lines.
+
+## Posts
 
 | Directory | URL | Frontmatter |
 | --- | --- | --- |
@@ -24,12 +46,13 @@ Content lives in `src/content/`, one directory per collection:
 | `reading/` | `/reading/:slug` | `title`, `author`, `year?`, `dateRead`, `rating?`, `link?`, `tags`, `draft` |
 
 The slug is the filename. Schemas are enforced at build time in
-`src/content.config.ts` — a missing or malformed field fails the build.
+`src/content.config.ts` — a missing or malformed field fails the build with the
+offending file named.
 
 `draft: true` hides an entry from the built site but keeps it visible in
 `npm run dev`.
 
-### Markdown
+### Markdown features
 
 Sätteri (Astro 7's Markdown engine) with GitHub-Flavored Markdown, so tables,
 footnotes, and strikethrough work without configuration. On top of that:
@@ -41,7 +64,15 @@ footnotes, and strikethrough work without configuration. On top of that:
   re-rendered on theme change.
 - **Headings** — automatic ids and anchor links.
 
-Use `.mdx` instead of `.md` when a post needs components (`Figure.astro`).
+Use `.mdx` instead of `.md` when a page needs components (`Figure.astro` gives
+you captioned images).
+
+## The few things that are not Markdown
+
+- **Design** — colours, type, and spacing are custom properties in
+  `src/styles/tokens.css`.
+- **Math macros** — the `macros` block in `astro.config.mjs`.
+- **Page structure** — layouts and components in `src/layouts/`, `src/components/`.
 
 ## Design
 

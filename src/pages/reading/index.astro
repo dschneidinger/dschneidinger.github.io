@@ -1,10 +1,15 @@
 ---
+import { render } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import EntryList, { type Entry } from '../../components/EntryList.astro';
 import { getReading, formatDate, isoDate } from '../../lib/content';
+import { getPage } from '../../lib/site';
 
-const reading = await getReading();
-const entries: Entry[] = reading.map((item) => ({
+const page = await getPage('reading');
+const { Content } = await render(page);
+
+const items = await getReading();
+const entries: Entry[] = items.map((item) => ({
   href: `/reading/${item.id}/`,
   title: item.data.title,
   description: item.data.description,
@@ -13,8 +18,10 @@ const entries: Entry[] = reading.map((item) => ({
 }));
 ---
 
-<Base title="Reading" description="Notes on books and papers.">
-  <h1 class="page-title">Reading</h1>
-  <p class="page-intro">Notes on books and papers, kept mainly so I remember them.</p>
+<Base title={page.data.title} description={page.data.description}>
+  <h1 class="page-title">{page.data.title}</h1>
+  <div class="page-intro prose">
+    <Content />
+  </div>
   <EntryList entries={entries} empty="No reading notes yet." />
 </Base>

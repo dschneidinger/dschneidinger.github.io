@@ -65,10 +65,6 @@ video {
   padding-inline: var(--gutter);
 }
 
-.container--wide {
-  max-width: var(--measure-wide);
-}
-
 main {
   flex: 1;
 }

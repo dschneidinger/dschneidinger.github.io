@@ -1,7 +1,13 @@
 ---
+import { render } from 'astro:content';
 import Base from '../layouts/Base.astro';
 import EntryList, { type Entry } from '../components/EntryList.astro';
 import { getEssays, getNotes, formatDate, isoDate } from '../lib/content';
+import { getPage, getSite } from '../lib/site';
+
+const site = await getSite();
+const page = await getPage('home');
+const { Content } = await render(page);
 
 const [essays, notes] = await Promise.all([getEssays(), getNotes()]);
 
@@ -22,29 +28,35 @@ const recentNotes: Entry[] = notes.slice(0, 4).map((note) => ({
 }));
 ---
 
-<Base>
-  <section class="intro">
-    <p>
-      I'm David — I write mostly about physics, and about how understanding gets built and kept.
-      Longer pieces live in <a href="/writing">writing</a>; rougher, evolving material lives in
-      <a href="/notes">notes</a>.
-    </p>
+<Base description={page.data.description}>
+  <h1 class="sr-only">{site.title}</h1>
+
+  <section class="intro prose">
+    <Content />
   </section>
 
   <section class="home-section">
     <h2 class="home-section__heading">Recent writing</h2>
     <EntryList entries={recentEssays} empty="No essays published yet." />
-    {essays.length > recentEssays.length && (
-      <p class="home-section__more"><a href="/writing">All writing →</a></p>
-    )}
+    {
+      essays.length > recentEssays.length && (
+        <p class="home-section__more">
+          <a href="/writing">All writing →</a>
+        </p>
+      )
+    }
   </section>
 
   <section class="home-section">
     <h2 class="home-section__heading">Recent notes</h2>
     <EntryList entries={recentNotes} empty="No notes yet." />
-    {notes.length > recentNotes.length && (
-      <p class="home-section__more"><a href="/notes">All notes →</a></p>
-    )}
+    {
+      notes.length > recentNotes.length && (
+        <p class="home-section__more">
+          <a href="/notes">All notes →</a>
+        </p>
+      )
+    }
   </section>
 </Base>
 

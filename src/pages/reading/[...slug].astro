@@ -11,9 +11,16 @@ export const getStaticPaths = (async () => {
 
 const { item } = Astro.props;
 const { Content } = await render(item);
-const { title, author, year, dateRead, link, description, tags } = item.data;
+const { title, author, year, dateRead, rating, link, description, tags } = item.data;
 
-const dateline = [author, year, `read ${formatDate(dateRead)}`].filter(Boolean).join(' · ');
+const dateline = [
+  author,
+  year,
+  `read ${formatDate(dateRead)}`,
+  rating && '★'.repeat(rating),
+]
+  .filter(Boolean)
+  .join(' · ');
 ---
 
 <Prose

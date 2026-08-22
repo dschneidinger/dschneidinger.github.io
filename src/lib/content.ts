@@ -1,4 +1,4 @@
-import { getCollection, type CollectionEntry } from 'astro:content';
+import { getCollection } from 'astro:content';
 
 /** Drafts stay visible while writing, and disappear from the built site. */
 const isVisible = (entry: { data: { draft: boolean } }) =>
@@ -19,9 +19,6 @@ export const getReading = async () =>
     (a, b) => b.data.dateRead.valueOf() - a.data.dateRead.valueOf(),
   );
 
-export type Essay = CollectionEntry<'essays'>;
-export type Note = CollectionEntry<'notes'>;
-export type Reading = CollectionEntry<'reading'>;
 
 /** Shared date formatting, so every section reads the same way. */
 export const formatDate = (date: Date, opts: Intl.DateTimeFormatOptions = {}) =>
@@ -33,7 +30,5 @@ export const formatDate = (date: Date, opts: Intl.DateTimeFormatOptions = {}) =>
     ...opts,
   }).format(date);
 
-export const formatMonth = (date: Date) =>
-  formatDate(date, { day: undefined, month: 'long' });
 
 export const isoDate = (date: Date) => date.toISOString().slice(0, 10);

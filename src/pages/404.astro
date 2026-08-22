@@ -1,11 +1,12 @@
 ---
-import Base from '../layouts/Base.astro';
+import { render } from 'astro:content';
+import Prose from '../layouts/Prose.astro';
+import { getPage } from '../lib/site';
+
+const page = await getPage('not-found');
+const { Content } = await render(page);
 ---
 
-<Base title="Not found" description="That page does not exist.">
-  <div class="prose">
-    <h1>Not found</h1>
-    <p>There's nothing at this address. Try <a href="/writing">the writing index</a>, or
-      <a href="/">start from the top</a>.</p>
-  </div>
-</Base>
+<Prose title={page.data.title} description={page.data.description}>
+  <Content />
+</Prose>

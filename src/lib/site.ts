@@ -1,14 +1,28 @@
-export const SITE = {
-  title: 'David Schneidinger',
-  description: 'Essays and notes, mostly on physics and things adjacent to it.',
-  author: 'David Schneidinger',
-  url: 'https://dschneidinger.github.io',
-} as const;
+import { getEntry, type CollectionEntry } from 'astro:content';
 
-export const NAV = [
-  { href: '/writing', label: 'Writing' },
-  { href: '/notes', label: 'Notes' },
-  { href: '/reading', label: 'Reading' },
-  { href: '/projects', label: 'Projects' },
-  { href: '/about', label: 'About' },
-] as const;
+/**
+ * Site chrome and page prose both live in Markdown under src/content/, so
+ * everyday edits never touch a component. These loaders fail loudly rather
+ * than rendering a half-empty page when a file is missing.
+ */
+
+export async function getSite(): Promise<CollectionEntry<'settings'>['data']> {
+  const entry = await getEntry('settings', 'site');
+  if (!entry) throw new Error('Missing src/content/site.md — site settings live there.');
+  return entry.data;
+}
+
+export type PageId =
+  | 'home'
+  | 'writing'
+  | 'notes'
+  | 'reading'
+  | 'about'
+  | 'projects'
+  | 'not-found';
+
+export async function getPage(id: PageId): Promise<CollectionEntry<'pages'>> {
+  const entry = await getEntry('pages', id);
+  if (!entry) throw new Error(`Missing src/content/pages/${id}.md`);
+  return entry;
+}

@@ -1,15 +1,12 @@
 ---
+import { render } from 'astro:content';
 import Prose from '../layouts/Prose.astro';
+import { getPage } from '../lib/site';
+
+const page = await getPage('projects');
+const { Content } = await render(page);
 ---
 
-<Prose title="Projects" description="Things I've built.">
-  <p>
-    <em>Placeholder — replace with real entries as you have them.</em>
-  </p>
-
-  <h2>This site</h2>
-  <p>
-    A static site built with Astro, written in Markdown, and deployed to GitHub Pages. The
-    source is on <a href="https://github.com/dschneidinger/dschneidinger.github.io">GitHub</a>.
-  </p>
+<Prose title={page.data.title} description={page.data.description}>
+  <Content />
 </Prose>

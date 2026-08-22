@@ -1,13 +1,13 @@
 import rss from '@astrojs/rss';
 import { getEssays } from '../lib/content';
-import { SITE } from '../lib/site';
+import { getSite } from '../lib/site';
 
 export async function GET(context) {
-  const essays = await getEssays();
+  const [site, essays] = await Promise.all([getSite(), getEssays()]);
 
   return rss({
-    title: SITE.title,
-    description: SITE.description,
+    title: site.title,
+    description: site.description,
     site: context.site,
     items: essays.map((essay) => ({
       title: essay.data.title,
