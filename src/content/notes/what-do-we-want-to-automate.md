@@ -3,6 +3,7 @@ title: What do we want to automate
 started: 2026-07-02
 updated: 2026-08-20
 maturity: growing
+draft: true
 ---
 
 
