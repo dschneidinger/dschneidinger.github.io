@@ -2,14 +2,20 @@
 import { render } from 'astro:content';
 import Base from '../layouts/Base.astro';
 import EntryList, { type Entry } from '../components/EntryList.astro';
-import { getEssays, getNotes, formatDate, isoDate } from '../lib/content';
+import { getEssays, getNotes, getProjects, formatDate, isoDate } from '../lib/content';
 import { getPage, getSite } from '../lib/site';
 
 const site = await getSite();
 const page = await getPage('home');
 const { Content } = await render(page);
 
-const [essays, notes] = await Promise.all([getEssays(), getNotes()]);
+const [essays, notes, projects] = await Promise.all([getEssays(), getNotes(), getProjects()]);
+
+const projectEntries: Entry[] = projects.map((project) => ({
+  href: project.data.url,
+  title: project.data.title,
+  description: project.data.description,
+}));
 
 const recentEssays: Entry[] = essays.slice(0, 4).map((essay) => ({
   href: `/writing/${essay.id}/`,
@@ -35,29 +41,42 @@ const recentNotes: Entry[] = notes.slice(0, 4).map((note) => ({
     <Content />
   </section>
 
-  <section class="home-section">
-    <h2 class="home-section__heading">Recent writing</h2>
-    <EntryList entries={recentEssays} empty="No essays published yet." />
-    {
-      essays.length > recentEssays.length && (
-        <p class="home-section__more">
-          <a href="/writing">All writing →</a>
-        </p>
-      )
-    }
-  </section>
+  {
+    projectEntries.length > 0 && (
+      <section class="home-section">
+        <h2 class="home-section__heading">Projects</h2>
+        <EntryList entries={projectEntries} />
+      </section>
+    )
+  }
 
-  <section class="home-section">
-    <h2 class="home-section__heading">Recent notes</h2>
-    <EntryList entries={recentNotes} empty="No notes yet." />
-    {
-      notes.length > recentNotes.length && (
-        <p class="home-section__more">
-          <a href="/notes">All notes →</a>
-        </p>
-      )
-    }
-  </section>
+  {
+    recentEssays.length > 0 && (
+      <section class="home-section">
+        <h2 class="home-section__heading">Recent writing</h2>
+        <EntryList entries={recentEssays} />
+        {essays.length > recentEssays.length && (
+          <p class="home-section__more">
+            <a href="/writing">All writing →</a>
+          </p>
+        )}
+      </section>
+    )
+  }
+
+  {
+    recentNotes.length > 0 && (
+      <section class="home-section">
+        <h2 class="home-section__heading">Recent notes</h2>
+        <EntryList entries={recentNotes} />
+        {notes.length > recentNotes.length && (
+          <p class="home-section__more">
+            <a href="/notes">All notes →</a>
+          </p>
+        )}
+      </section>
+    )
+  }
 </Base>
 
 <style>

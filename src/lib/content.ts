@@ -14,9 +14,9 @@ export const getNotes = async () =>
     (a, b) => b.data.updated.valueOf() - a.data.updated.valueOf(),
   );
 
-export const getReading = async () =>
-  (await getCollection('reading', isVisible)).sort(
-    (a, b) => b.data.dateRead.valueOf() - a.data.dateRead.valueOf(),
+export const getProjects = async () =>
+  (await getCollection('projects', isVisible)).sort((a, b) =>
+    a.data.title.localeCompare(b.data.title),
   );
 
 

@@ -6,7 +6,6 @@ author: David Schneidinger
 nav:
   - { href: /writing, label: Writing }
   - { href: /notes, label: Notes }
-  - { href: /reading, label: Reading }
   - { href: /projects, label: Projects }
   - { href: /about, label: About }
 # Links in the footer.

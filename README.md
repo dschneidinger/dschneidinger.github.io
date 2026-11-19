@@ -1,6 +1,6 @@
 # dschneidinger.github.io
 
-Personal site — essays, notes, and reading notes. Built with
+Personal site — essays, notes, and projects. Built with
 [Astro](https://astro.build) and deployed to GitHub Pages.
 
 ## Running it
@@ -25,13 +25,12 @@ src/content/
     home.md            the homepage intro paragraph
     writing.md         heading + intro for /writing
     notes.md           heading + intro for /notes
-    reading.md         heading + intro for /reading
     about.md           the whole /about page
-    projects.md        the whole /projects page
+    projects.md        heading + intro for /projects
     not-found.md       the 404 page
   essays/              -> /writing/:slug
   notes/               -> /notes/:slug
-  reading/             -> /reading/:slug
+  projects/            -> listed on /projects and the homepage
 ```
 
 Navigation and footer links are the `nav:` and `links:` lists in
@@ -43,7 +42,7 @@ Navigation and footer links are the `nav:` and `links:` lists in
 | --- | --- | --- |
 | `essays/` | `/writing/:slug` | `title`, `description`, `pubDate`, `updatedDate?`, `tags`, `draft` |
 | `notes/` | `/notes/:slug` | `title`, `description?`, `started`, `updated`, `maturity`, `tags`, `draft` |
-| `reading/` | `/reading/:slug` | `title`, `author`, `year?`, `dateRead`, `rating?`, `link?`, `tags`, `draft` |
+| `projects/` | links out to `url` | `title`, `description`, `url`, `repo?`, `draft` |
 
 The slug is the filename. Schemas are enforced at build time in
 `src/content.config.ts` — a missing or malformed field fails the build with the

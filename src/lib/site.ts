@@ -16,7 +16,6 @@ export type PageId =
   | 'home'
   | 'writing'
   | 'notes'
-  | 'reading'
   | 'about'
   | 'projects'
   | 'not-found';

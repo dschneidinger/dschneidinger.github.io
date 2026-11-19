@@ -31,25 +31,21 @@ const notes = defineCollection({
   }),
 });
 
-/** Notes on books and papers. */
-const reading = defineCollection({
-  loader: glob({ base: './src/content/reading', pattern: '**/*.{md,mdx}' }),
+/** Projects, each linking out to where it lives. */
+const projects = defineCollection({
+  loader: glob({ base: './src/content/projects', pattern: '**/*.{md,mdx}' }),
   schema: z.object({
     title: z.string(),
-    author: z.string(),
-    year: z.number().int().optional(),
-    dateRead: z.coerce.date(),
-    rating: z.number().int().min(1).max(5).optional(),
-    link: z.url().optional(),
-    description: z.string().optional(),
-    tags,
+    description: z.string(),
+    url: z.url(),
+    repo: z.url().optional(),
     draft: z.boolean().default(false),
   }),
 });
 
 const linkList = z.array(z.object({ href: z.string(), label: z.string() }));
 
-/** Editable prose for the standalone pages: home, section intros, about, 404. */
+/** Editable prose for the standalone pages: home, section intros, about, projects, 404. */
 const pages = defineCollection({
   loader: glob({ base: './src/content/pages', pattern: '*.{md,mdx}' }),
   schema: z.object({
@@ -70,4 +66,4 @@ const settings = defineCollection({
   }),
 });
 
-export const collections = { essays, notes, reading, pages, settings };
+export const collections = { essays, notes, projects, pages, settings };

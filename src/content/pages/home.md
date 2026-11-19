@@ -4,4 +4,3 @@ title: Home
 ---
 
 I'm David.
-Links to [writing](/writing); Links to [notes](/notes).

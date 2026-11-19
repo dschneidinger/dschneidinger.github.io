@@ -1,12 +1,24 @@
 ---
 import { render } from 'astro:content';
-import Prose from '../layouts/Prose.astro';
+import Base from '../layouts/Base.astro';
+import EntryList, { type Entry } from '../components/EntryList.astro';
+import { getProjects } from '../lib/content';
 import { getPage } from '../lib/site';
 
 const page = await getPage('projects');
 const { Content } = await render(page);
+
+const entries: Entry[] = (await getProjects()).map((project) => ({
+  href: project.data.url,
+  title: project.data.title,
+  description: project.data.description,
+}));
 ---
 
-<Prose title={page.data.title} description={page.data.description}>
-  <Content />
-</Prose>
+<Base title={page.data.title} description={page.data.description}>
+  <h1 class="page-title">{page.data.title}</h1>
+  <div class="page-intro prose">
+    <Content />
+  </div>
+  <EntryList entries={entries} empty="No projects yet." />
+</Base>
