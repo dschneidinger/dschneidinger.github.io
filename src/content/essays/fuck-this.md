@@ -3,6 +3,7 @@ title: Will this break it?
 description: >-
   Fear the AI
 pubDate: 2026-08-18
+draft: true
 tags: ['AI Alignment']
 ---
 
