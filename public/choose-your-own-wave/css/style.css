@@ -35,7 +35,7 @@ button { font: inherit; color: inherit; }
 #portalHD {
   position: absolute; pointer-events: none;
   left: calc(77 / 320 * 100%); top: calc(17 / 180 * 100%);
-  width: calc(166 / 320 * 100%); height: calc(66 / 180 * 100%);
+  width: calc(232 / 320 * 100%); height: calc(92 / 180 * 100%);
 }
 #minimap {
   position: absolute; top: 8px; left: 8px; width: 19.5%; min-width: 120px; height: auto; aspect-ratio: 240 / 192;

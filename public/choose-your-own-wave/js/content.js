@@ -336,7 +336,7 @@
       result: String.raw`n^2=\frac{c^2k^2}{\omega^2}=1-\frac{\omega_p^2/\omega^2}{1-\omega_c/\omega}`,
       extra: String.raw`Resonance at $\omega=\omega_c$ (electron cyclotron). Cutoff at $\omega_R$.<br><b>Whistler</b> branch ($\omega\ll\omega_c$): $\;\omega\approx\dfrac{k^2c^2\omega_c}{\omega_p^2}$.`,
       owNote: String.raw`<b class="wave">WAVE</b>, with two branches. On the whistler branch $v_g\approx2v_\phi\propto\sqrt\omega$: higher frequencies outrun lower ones. A lightning flash on the other side of the planet arrives as a <b>descending whistle</b>. Near $\omega_c$ the wave co-rotates with the electrons, pumps energy into them continuously, and $v_g\to0$ (the electron cyclotron resonance).`,
-      picture: String.raw`The portal shows the $\mathbf E_1$ vector rotating around $\mathbf B_0$ (along the screen), tracing a right-handed helix. Flip the polarization and the resonance disappears.`,
+      picture: String.raw`The portal shows the $\mathbf E_1$ vector rotating around $\mathbf B_0$ (along the screen), tracing a right-handed helix. The electrons (cyan) circle with it: in step with $\mathbf E_1$ above $\omega_c$, opposite to it on the whistler branch below $\omega_c$. Flip the polarization and the resonance disappears.`,
       disp: {
         xLabel: 'k c / ω_pe', yLabel: 'ω / ω_pe', kMax: 3, wMax: 3.4, vUnit: 'c',
         branches: [
@@ -368,7 +368,7 @@
       result: String.raw`n^2=\frac{c^2k^2}{\omega^2}=1-\frac{\omega_p^2/\omega^2}{1+\omega_c/\omega}`,
       extra: String.raw`Cutoff at $\omega_L$. <b>No electron resonance</b>. With mobile ions it would resonate at $\Omega_c$ (the ion cyclotron wave).`,
       owNote: String.raw`<b class="wave">WAVE.</b> One branch above $\omega_L$. A linearly polarized wave is R + L; since they have different $k$ at the same $\omega$, the plane of polarization rotates as it travels. That's <b>Faraday rotation</b>, used to measure $\int n_eB_\parallel\,dl$ in labs and in pulsar signals.`,
-      picture: String.raw`Watch the helix in the portal turn the opposite way from the R wave's. Rotating against the electrons means the wave never “catches” them, so there's no electron resonance.`,
+      picture: String.raw`Watch the helix in the portal turn the opposite way from the R wave's. The electrons (cyan) still follow $\mathbf E_1$ around, but only with a small, sluggish orbit. Rotating against the electrons means the wave never “catches” them, so there's no electron resonance.`,
       disp: {
         xLabel: 'k c / ω_pe', yLabel: 'ω / ω_pe', kMax: 3, wMax: 3.4, vUnit: 'c',
         branches: [{ name: 'L wave', n2: n2L, wr: [WL + 1e-5, 8] }],
@@ -425,7 +425,7 @@
       ],
       result: String.raw`\frac{\omega^2}{k^2}=c^2\,\frac{v_s^2+v_A^2}{c^2+v_A^2}\;\approx\;v_A^2+v_s^2`,
       owNote: String.raw`<b class="wave">WAVE</b>: the fast magnetosonic wave, $v_g=\sqrt{v_A^2+v_s^2}$. Two springs in parallel again: <b>magnetic pressure</b> $B^2/2\mu_0$ plus <b>plasma pressure</b>. It's literally ion-acoustic sound with the magnetic field adding to the stiffness.`,
-      picture: String.raw`In the portal, $\mathbf B_0$ field lines run up the screen and crowd together in compressions. Three roads lead here: the Alfvén wave rotated, the X wave at low frequency, and the ion acoustic wave with a perpendicular field added. Magnetosonic waves make up the bow shocks in front of planets and are launched to heat fusion plasmas (ICRF).`,
+      picture: String.raw`In the portal, each vertical line is a $\mathbf B_0$ field line, with ions frozen onto it. Where the lines crowd together the field (and the density) is compressed, so they glow white; where they spread apart they fade to blue. Three roads lead here: the Alfvén wave rotated, the X wave at low frequency, and the ion acoustic wave with a perpendicular field added. Magnetosonic waves make up the bow shocks in front of planets and are launched to heat fusion plasmas (ICRF).`,
       disp: {
         xLabel: 'k v_A / Ω_ci', yLabel: 'ω / Ω_ci', kMax: 1, wMax: 1.4, vUnit: 'v_A',
         branches: [{ name: 'magnetosonic', fn: k => k * Math.sqrt(1 + VS_VA * VS_VA) }],

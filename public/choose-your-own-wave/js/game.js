@@ -7,7 +7,7 @@
   for (const id in NODES) NODES[id].id = id;
 
   const $ = s => document.querySelector(s);
-  const W = 320, H = 180, HY = 92, FY = 130;           // scene res, horizon, fork y
+  const W = 320, H = 180, HY = 122, FY = 154, CX = 193; // scene res, horizon, fork y, trail centre (under the portal)
   const C = { cyan: '#5fe1ff', ion: '#ff9a3c', ionDim: '#8a3f2a', yel: '#ffe14a', mag: '#ff5fd7', white: '#f4f4ff' };
 
   /* ------------------------------------------------------------------ state */
@@ -264,26 +264,26 @@
         g.fillStyle = pal.path[1]; g.fillRect(l, y, 1, 1); g.fillRect(r, y, 1, 1);
       }
     };
-    strip(FY, H, 160, 160, 9, 46);
+    strip(FY, H, CX, CX, 9, 46);
     for (let i = 0; i < N; i++) {
-      const hx = 160 + (i - (N - 1) / 2) * spread;
-      strip(HY + 1, FY, hx, 160, 1.5, 9);
-      const ts = 0.5, sx = Math.round(hx + (160 - hx) * ts), sy = Math.round(HY + 1 + (FY - HY - 1) * ts);
+      const hx = CX + (i - (N - 1) / 2) * spread;
+      strip(HY + 1, FY, hx, CX, 1.5, 9);
+      const ts = 0.62, sx = Math.round(hx + (CX - hx) * ts), sy = Math.round(HY + 1 + (FY - HY - 1) * ts);
       branches.push({ hx, hy: HY + 1, sx, sy });
     }
-    if (N === 0) strip(HY + 1, FY, 160, 160, 2, 9);
+    if (N === 0) strip(HY + 1, FY, CX, CX, 2, 9);
     // pebbles on path
     for (let i = 0; i < 90; i++) {
       const y = FY + Math.floor(rnd() * (H - FY)), t = (y - FY) / (H - FY), hw = 9 + 37 * t;
-      const x = Math.round(160 + (rnd() * 2 - 1) * hw * 0.85);
+      const x = Math.round(CX + (rnd() * 2 - 1) * hw * 0.85);
       g.fillStyle = rnd() < 0.5 ? pal.path[1] : pal.path[2]; g.fillRect(x, y, 1 + (t > 0.5 ? 1 : 0), 1);
     }
     // side trees (back to front)
     const trees = [];
     for (let i = 0; i < 30; i++) {
       const side = i % 2 ? 1 : -1, d = Math.pow(rnd(), 0.75);
-      const yb = HY + 3 + d * d * (H - HY + 34), h = (12 + d * 118) * (0.8 + rnd() * 0.4);
-      const minDx = 46 + d * 112, x = 160 + side * (minDx + rnd() * (50 + d * 40));
+      const yb = HY + 3 + d * d * (H - HY + 34), h = (12 + d * 100) * (0.8 + rnd() * 0.4);
+      const minDx = 46 + d * 112, x = CX + side * (minDx + rnd() * (50 + d * 40));
       trees.push({ x, yb, h, type: rnd() < pal.round ? 'round' : 'pine' });
     }
     trees.sort((a, b) => a.yb - b.yb).forEach(t => {
@@ -293,7 +293,7 @@
     // foreground grass tufts
     for (let i = 0; i < 40; i++) {
       const x = Math.floor(rnd() * W), y = H - Math.floor(rnd() * 14);
-      if (Math.abs(x - 160) < 50) continue;
+      if (Math.abs(x - CX) < 50) continue;
       g.fillStyle = pal.fol[1]; g.fillRect(x, y - 3, 1, 3); g.fillRect(x + 2, y - 4, 1, 4);
       g.fillStyle = pal.fol[2]; g.fillRect(x + 1, y - 5, 1, 5);
     }
@@ -306,8 +306,9 @@
   }
 
   /* ----------------------------------------------------------- the portal */
-  const PF = { x: 72, y: 12, w: 176, h: 76 };          // frame
-  const IN = { x: 77, y: 17, w: 166, h: 66 };          // inner
+  const PF = { x: 72, y: 12, w: 242, h: 102 };         // frame
+  const IN = { x: 77, y: 17, w: 232, h: 92 };          // inner
+  const PCX = PF.x + PF.w / 2;
   function drawPortal(g, now) {
     const n = curNode();
     // pillars
@@ -333,14 +334,14 @@
     const label = n.short;
     g.fillStyle = '#14141e';
     const tw = label.length * 8 + 10;
-    g.fillRect(160 - (tw >> 1) - 1, PF.y - 8, tw + 2, 13);
-    g.fillStyle = '#2a2a3a'; g.fillRect(160 - (tw >> 1), PF.y - 7, tw, 11);
-    pixelText(g, label, 160, PF.y - 6, n.kind === 'osc' ? '#ffb0ee' : n.kind === 'wave' ? '#b8f4ff' : '#ffeeaa', 'center');
+    g.fillRect(PCX - (tw >> 1) - 1, PF.y - 8, tw + 2, 13);
+    g.fillStyle = '#2a2a3a'; g.fillRect(PCX - (tw >> 1), PF.y - 7, tw, 11);
+    pixelText(g, label, PCX, PF.y - 6, n.kind === 'osc' ? '#ffb0ee' : n.kind === 'wave' ? '#b8f4ff' : '#ffeeaa', 'center');
   }
 
   /* ------------------------------------------------ HD portal renderer
      Drawn on its own canvas at full device resolution, laid over the
-     portal. Coordinates are logical portal units: 0..IN.w × 0..IN.h.     */
+     portal. Coordinates are logical portal units: 0..BW × 0..BH, stretched to fill IN.     */
   const hd = $('#portalHD'), hctx = hd.getContext('2d');
   function sizeHD() {
     const r = hd.getBoundingClientRect(), dpr = Math.min(3, window.devicePixelRatio || 1);
@@ -350,7 +351,7 @@
   if (window.ResizeObserver) new ResizeObserver(sizeHD).observe(hd);
   window.addEventListener('resize', sizeHD);
 
-  const BW = IN.w, BH = IN.h;
+  const BW = 166, BH = 66;   // logical drawing units (scaled to the portal's real size)
   function circ(g, x, y, r, col, glow) {
     g.fillStyle = col;
     if (glow) { g.shadowColor = col; g.shadowBlur = glow; }
@@ -392,6 +393,31 @@
     if (kind === 'right') arrowHD(g, cx - 2, y, cx + 9, y, col, 0.45, 1.6);
     if (kind === 'up') arrowHD(g, cx + 2, y + 3, cx + 2, y - 3.5, col, 0.45, 1.6);
   }
+  // bottom-row key, centred between the k label and the B0 label
+  function legendHD(g, items) {
+    const y = BH - 4.5, ts = 3, gap = 5;
+    const widths = items.map(it => (it.sw || 4) + 1.5 + it.label.length * ts);
+    let x = (24 + (BW - 28)) / 2 - (widths.reduce((a, b) => a + b, 0) + gap * (items.length - 1)) / 2;
+    g.fillStyle = 'rgba(6,10,28,0.72)';
+    g.fillRect(x - 2, y - 3.2, widths.reduce((a, b) => a + b, 0) + gap * (items.length - 1) + 4, 6.4);
+    items.forEach((it, i) => {
+      const sw = it.sw || 4, cx = x + sw / 2;
+      if (it.kind === 'e') circ(g, cx, y, 0.85, C.cyan, 2);
+      else if (it.kind === 'ion') circ(g, cx, y, 1.2, C.ion, 2);
+      else if (it.kind === 'ionFixed') circ(g, cx, y, 0.6, '#8a3f2a');
+      else if (it.kind === 'E') arrowHD(g, x, y, x + sw, y, C.yel, 0.5, 1.4);
+      else if (it.kind === 'line') { g.shadowColor = it.col; g.shadowBlur = 1.5; seg(g, x, y, x + sw, y, it.col, 0.6); g.shadowBlur = 0; }
+      else if (it.kind === 'grad') {
+        const gr = g.createLinearGradient(x, 0, x + sw, 0);
+        gr.addColorStop(0, 'rgb(70,160,255)'); gr.addColorStop(1, 'rgb(240,250,255)');
+        g.fillStyle = gr; g.fillRect(x, y - 0.9, sw, 1.8);
+      }
+      textHD(g, it.label, x + sw + 1.5, y + 0.2, it.tcol || '#b8c4e8', ts);
+      x += widths[i] + gap;
+    });
+  }
+  const E_ = { kind: 'e', label: 'e-' }, ION = { kind: 'ion', label: 'ion' }, ION0 = { kind: 'ionFixed', label: 'ion (fixed)' };
+  const EF = { kind: 'E', label: 'E', sw: 5 };
   function backdrop(g) {
     const bg = g.createLinearGradient(0, 0, 0, BH);
     bg.addColorStop(0, '#0b1230'); bg.addColorStop(1, '#060a1c');
@@ -451,7 +477,7 @@
       densityBand(g, tsec, BH - 15.5, 3.5);
       textHD(g, 'charge density', BW - 2, BH - 18.2, 'rgba(180,190,230,0.6)', 3, 'right');
       labelKHD(g);
-      textHD(g, v.type === 'ia' ? 'ions + e-' : 'electrons', BW - 3, BH - 4.5, '#7f9fc0', 3, 'right');
+      legendHD(g, v.type === 'ia' ? [ION, E_] : [E_, ION0]);
       vignette(g); return;
     }
     if (v.type === 'ellipse') {
@@ -476,6 +502,7 @@
         }
       }
       labelKHD(g); labelB0HD(g, 'out');
+      legendHD(g, v.which === 'UH' ? [E_, ION0] : [ION, E_]);
       vignette(g); return;
     }
     if (v.type === 'trans' || v.type === 'xwave') {
@@ -496,9 +523,8 @@
         const x = (i + 0.5) * sp;
         circ(g, x + (v.type === 'xwave' ? rho * im[i] * 1.8 * s : 0), 52 - re[i] * 2.8 * s, 0.85, C.cyan, 2);
       }
-      textHD(g, 'E', 3, 4, C.yel, 4);
-      textHD(g, 'e-', 3, 52, '#7f9fc0', 3);
       labelKHD(g);
+      legendHD(g, [EF, E_]);
       if (v.type === 'xwave') labelB0HD(g, 'out');
       if (v.bAlongE) labelB0HD(g, 'up');
       vignette(g); return;
@@ -509,17 +535,33 @@
       const curve = Array.from({ length: D }, (_, i) => { const x = (i + 0.5) * BW / D, ez = v.hand * dd.im[i]; return { p: proj(x, dd.re[i], ez), z: ez }; });
       const N = 38, sp = BW / N, Xs = gridX(N), { re, im } = psiArr(Xs, tsec);
       const arrows = Array.from({ length: N }, (_, i) => { const x = (i + 0.5) * sp, ez = v.hand * im[i]; return { x, tip: proj(x, re[i], ez), z: ez }; });
+      // electrons: cold response to a circular E is xi = (e/m) E / (w (w -+ wce)), parallel or antiparallel to E
+      const w = F.w0, fe = w / (w - v.hand * PHYS.WC);          // xi_e / (e E / m w^2)
+      const se = Math.sign(fe) * Math.min(1.25, Math.max(0.3, Math.abs(fe))) * 0.55;
+      const NP = 13, spp = BW / NP, Xp = gridX(NP), pp = psiArr(Xp, tsec);
+      const elec = Array.from({ length: NP }, (_, i) => { const x = (i + 0.5) * spp, ez = v.hand * pp.im[i] * se; return { x, p: proj(x, pp.re[i] * se, ez), z: ez }; });
+      const orbit = (x, rad, col) => {
+        const pts = []; for (let j = 0; j <= 24; j++) { const a = j / 24 * 6.2832; pts.push(proj(x, Math.cos(a) * rad, Math.sin(a) * rad)); }
+        polyline(g, pts, col, 0.2);
+      };
+      for (let i = 0; i < NP; i++) orbit(elec[i].x, Math.abs(se) * Math.hypot(pp.re[i], pp.im[i]), 'rgba(95,225,255,0.18)');
+      const drawE = front => elec.forEach(e => { if ((e.z >= 0) === front) circ(g, e.p[0], e.p[1], front ? 0.95 : 0.75, front ? C.cyan : 'rgba(95,225,255,0.55)', front ? 2.5 : 0); });
       // back half first, then the B0 axis, then the front half
+      drawE(false);
       arrows.forEach(a => { if (a.z < 0) arrowHD(g, a.x, ym, a.tip[0], a.tip[1], 'rgba(160,140,60,0.75)', 0.45, 1.4); });
       for (let i = 1; i < D; i++) if (curve[i].z < 0) seg(g, curve[i - 1].p[0], curve[i - 1].p[1], curve[i].p[0], curve[i].p[1], 'rgba(170,110,170,0.6)', 0.45);
       seg(g, 0, ym, BW, ym, '#c9b8ff', 0.4);
+      for (let i = 0; i < NP; i++) circ(g, elec[i].x, ym, 0.6, '#8a3f2a');
       g.shadowColor = '#ffd0f0'; g.shadowBlur = 2;
       for (let i = 1; i < D; i++) if (curve[i].z >= 0) seg(g, curve[i - 1].p[0], curve[i - 1].p[1], curve[i].p[0], curve[i].p[1], '#ffd0f0', 0.6);
       g.shadowColor = C.yel;
       arrows.forEach(a => { if (a.z >= 0) arrowHD(g, a.x, ym, a.tip[0], a.tip[1], C.yel, 0.55, 1.6); });
       g.shadowBlur = 0;
+      drawE(true);
       textHD(g, v.hand > 0 ? 'R' : 'L', 3, 4, '#ffd0f0', 4);
+      textHD(g, se < 0 ? 'e- move opposite E' : 'e- move with E', BW - 3, 4, '#8fb4d8', 3, 'right');
       labelKHD(g); labelB0HD(g, 'right');
+      legendHD(g, [EF, E_, ION0]);
       vignette(g); return;
     }
     if (v.type === 'string') {
@@ -530,6 +572,7 @@
         for (let i = 8; i < D; i += 20) circ(g, (i + 0.5) * BW / D, y0 - re[i] * 6.5, 1.15, C.ion, 2);
       }
       labelKHD(g); labelB0HD(g, 'right');
+      legendHD(g, [{ kind: 'line', col: '#7fe8ff', label: 'B line', sw: 6 }, ION]);
       vignette(g); return;
     }
     if (v.type === 'compress') {
@@ -545,6 +588,7 @@
         if (i < N - 1) for (let r = 0; r < 3; r++) circ(g, (xs[i] + xs[i + 1]) / 2, 9 + r * 16, 1.0, C.ion, 1.5);
       }
       labelKHD(g); labelB0HD(g, 'up');
+      legendHD(g, [{ kind: 'grad', label: 'B line: white = squeezed', sw: 6 }, ION]);
       vignette(g);
     }
   }
@@ -874,7 +918,7 @@
         if (p >= 1) { const ex = trans.ex; trans = { type: 'in', t0: now, dur: 650 }; arrive(ex); }
       } else if (trans.type === 'in') {
         const q = ease(p), s = 1.3 - 0.3 * q;
-        g.setTransform(s, 0, 0, s, 160 - 160 * s, (HY + 20) - (HY + 20) * s);
+        g.setTransform(s, 0, 0, s, CX - CX * s, (HY + 20) - (HY + 20) * s);
         drawWorld(g, now);
         g.setTransform(1, 0, 0, 1, 0, 0); g.fillStyle = `rgba(0,0,0,${1 - q})`; g.fillRect(0, 0, W, H);
         if (p >= 1) trans = null;
