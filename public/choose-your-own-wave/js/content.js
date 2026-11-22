@@ -336,7 +336,7 @@
       result: String.raw`n^2=\frac{c^2k^2}{\omega^2}=1-\frac{\omega_p^2/\omega^2}{1-\omega_c/\omega}`,
       extra: String.raw`Resonance at $\omega=\omega_c$ (electron cyclotron). Cutoff at $\omega_R$.<br><b>Whistler</b> branch ($\omega\ll\omega_c$): $\;\omega\approx\dfrac{k^2c^2\omega_c}{\omega_p^2}$.`,
       owNote: String.raw`<b class="wave">WAVE</b>, with two branches. On the whistler branch $v_g\approx2v_\phi\propto\sqrt\omega$: higher frequencies outrun lower ones. A lightning flash on the other side of the planet arrives as a <b>descending whistle</b>. Near $\omega_c$ the wave co-rotates with the electrons, pumps energy into them continuously, and $v_g\to0$ (the electron cyclotron resonance).`,
-      picture: String.raw`The portal shows the $\mathbf E_1$ vector rotating around $\mathbf B_0$ (along the screen), tracing a right-handed helix. The electrons (cyan) circle with it: in step with $\mathbf E_1$ above $\omega_c$, opposite to it on the whistler branch below $\omega_c$. Flip the polarization and the resonance disappears.`,
+      picture: String.raw`The portal shows the $\mathbf E_1$ vector rotating around $\mathbf B_0$ (along the screen). At any fixed point it turns right-handedly about $\mathbf B_0$, the same way the electrons gyrate. Careful: frozen in time, the same field traces a <i>left</i>-handed corkscrew in space, because the pattern depends on $kz-\omega t$. The electrons (cyan) circle with it: in step with $\mathbf E_1$ above $\omega_c$, opposite to it on the whistler branch below $\omega_c$. Flip the polarization and the resonance disappears.`,
       disp: {
         xLabel: 'k c / ω_pe', yLabel: 'ω / ω_pe', kMax: 3, wMax: 3.4, vUnit: 'c',
         branches: [

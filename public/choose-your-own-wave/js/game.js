@@ -490,14 +490,14 @@
         g.beginPath(); g.ellipse(bx, y, Math.max(0.01, A * amp), Math.max(0.01, A * amp * r), 0, 0, 6.2832); g.stroke();
         if (v.which === 'UH') {
           circ(g, bx, y + 6.5, 0.5, '#8a3f2a');
-          circ(g, bx + re[i] * A, y - im[i] * A * r, 1.0, C.cyan, 2.5);
+          circ(g, bx + re[i] * A, y + im[i] * A * r, 1.0, C.cyan, 2.5);   // e-: counter-clockwise = right-handed about B0 (out of screen)
         } else if (v.which === 'EIC') {
-          circ(g, bx + re[i] * A, y - im[i] * A * r, 1.4, C.ion, 2.5);
+          circ(g, bx + re[i] * A, y - im[i] * A * r, 1.4, C.ion, 2.5);   // ion: clockwise = left-handed about B0
           circ(g, bx + (Math.random() * 2 - 1) * 1.8, y + 6 + (Math.random() * 2 - 1) * 0.8, 0.45, C.cyan);
         } else { // LH: ions slosh along k, electrons E×B-drift across it
           g.strokeStyle = 'rgba(95,225,255,0.25)'; g.lineWidth = 0.25;
           g.beginPath(); g.moveTo(bx + 3, y - A * amp * 1.25); g.lineTo(bx + 3, y + A * amp * 1.25); g.stroke();
-          circ(g, bx + re[i] * A, y - im[i] * A * 0.15, 1.4, C.ion, 2.5);
+          circ(g, bx - re[i] * A, y + im[i] * A * 0.15, 1.4, C.ion, 2.5);   // ions ~ -E/w^2, small left-handed ellipse
           circ(g, bx + 3, y - im[i] * A * 1.25, 0.85, C.cyan, 2);
         }
       }
@@ -507,8 +507,17 @@
     }
     if (v.type === 'trans' || v.type === 'xwave') {
       const N = 29, sp = BW / N, Xs = gridX(N), { re, im } = psiArr(Xs, tsec), ym = 25;
-      let rho = 0, s = 1;
-      if (v.type === 'xwave') { const w = F.w0; rho = Math.min(3, PHYS.WC / (w * Math.abs(w * w - PHYS.WUH * PHYS.WUH))); s = 1 / Math.max(1, rho); }
+      let rho = 0, s = 1, xa = [0, 0], xb = [1, 0];   // electron displacement amplitudes [re, im] along x and y
+      if (v.type === 'xwave') {
+        // Ex/Ey = -i rho with signed rho = wc / (w (w^2 - wUH^2))  (flips sign across the upper-hybrid resonance)
+        const w = F.w0, wc = PHYS.WC;
+        rho = Math.max(-3, Math.min(3, wc / (w * (w * w - PHYS.WUH * PHYS.WUH)))); s = 1 / Math.max(1, Math.abs(rho));
+        // cold electrons, B0 out of screen:  w^2 xa + i w wc xb = Ea,  -i w wc xa + w^2 xb = Eb   (Ea = -i rho, Eb = 1)
+        const det = w * w * (w * w - wc * wc);
+        xa = [0, -(w * w * rho + w * wc) / det];
+        xb = [(w * w + w * wc * rho) / det, 0];
+        const m = Math.max(Math.hypot(...xa), Math.hypot(...xb)); xa = xa.map(q => q / m); xb = xb.map(q => q / m);
+      }
       seg(g, 0, ym, BW, ym, 'rgba(120,140,220,0.35)', 0.25);
       // smooth envelope of E_y along the axis
       const D = 200, Xd = gridX(D), dd = psiArr(Xd, tsec);
@@ -521,7 +530,7 @@
       g.shadowBlur = 0;
       for (let i = 0; i < N; i++) {
         const x = (i + 0.5) * sp;
-        circ(g, x + (v.type === 'xwave' ? rho * im[i] * 1.8 * s : 0), 52 - re[i] * 2.8 * s, 0.85, C.cyan, 2);
+        circ(g, x + (xa[0] * re[i] - xa[1] * im[i]) * 2.8, 52 - (xb[0] * re[i] - xb[1] * im[i]) * 2.8, 0.85, C.cyan, 2);
       }
       labelKHD(g);
       legendHD(g, [EF, E_]);
@@ -532,20 +541,21 @@
     if (v.type === 'helix') {
       const ym = 28, L = 18, proj = (x, ey, ez) => [x - ez * 0.45 * L, ym - ey * L + ez * 0.35 * L];
       const D = 240, Xd = gridX(D), dd = psiArr(Xd, tsec);
-      const curve = Array.from({ length: D }, (_, i) => { const x = (i + 0.5) * BW / D, ez = v.hand * dd.im[i]; return { p: proj(x, dd.re[i], ez), z: ez }; });
+      const curve = Array.from({ length: D }, (_, i) => { const x = (i + 0.5) * BW / D, ez = -v.hand * dd.im[i]; return { p: proj(x, dd.re[i], ez), z: ez }; });
       const N = 38, sp = BW / N, Xs = gridX(N), { re, im } = psiArr(Xs, tsec);
-      const arrows = Array.from({ length: N }, (_, i) => { const x = (i + 0.5) * sp, ez = v.hand * im[i]; return { x, tip: proj(x, re[i], ez), z: ez }; });
+      const arrows = Array.from({ length: N }, (_, i) => { const x = (i + 0.5) * sp, ez = -v.hand * im[i]; return { x, tip: proj(x, re[i], ez), z: ez }; });
       // electrons: cold response to a circular E is xi = (e/m) E / (w (w -+ wce)), parallel or antiparallel to E
       const w = F.w0, fe = w / (w - v.hand * PHYS.WC);          // xi_e / (e E / m w^2)
       const se = Math.sign(fe) * Math.min(1.25, Math.max(0.3, Math.abs(fe))) * 0.55;
       const NP = 13, spp = BW / NP, Xp = gridX(NP), pp = psiArr(Xp, tsec);
-      const elec = Array.from({ length: NP }, (_, i) => { const x = (i + 0.5) * spp, ez = v.hand * pp.im[i] * se; return { x, p: proj(x, pp.re[i] * se, ez), z: ez }; });
+      const elec = Array.from({ length: NP }, (_, i) => { const x = (i + 0.5) * spp, ez = -v.hand * pp.im[i] * se; return { x, p: proj(x, pp.re[i] * se, ez), z: ez }; });
       const orbit = (x, rad, col) => {
         const pts = []; for (let j = 0; j <= 24; j++) { const a = j / 24 * 6.2832; pts.push(proj(x, Math.cos(a) * rad, Math.sin(a) * rad)); }
         polyline(g, pts, col, 0.2);
       };
       for (let i = 0; i < NP; i++) orbit(elec[i].x, Math.abs(se) * Math.hypot(pp.re[i], pp.im[i]), 'rgba(95,225,255,0.18)');
       const drawE = front => elec.forEach(e => { if ((e.z >= 0) === front) circ(g, e.p[0], e.p[1], front ? 0.95 : 0.75, front ? C.cyan : 'rgba(95,225,255,0.55)', front ? 2.5 : 0); });
+      // psi = exp(i(kx - wt)): right-hand rotation about B0 (+x) has E_z = Re(i psi) = -Im psi, hence ez = -hand * im
       // back half first, then the B0 axis, then the front half
       drawE(false);
       arrows.forEach(a => { if (a.z < 0) arrowHD(g, a.x, ym, a.tip[0], a.tip[1], 'rgba(160,140,60,0.75)', 0.45, 1.4); });
