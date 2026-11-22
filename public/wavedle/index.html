@@ -688,7 +688,8 @@ function buildRun(mode) {
   targets.forEach(t => used[t] = 2);
   const builds = targets.map(t => ({ id: 'build_' + t, build: true, ans: t, time: BUILD_TIME, title: t === 'none' ? 'Build a setup with no wave' : `Build it: ${MODES[t].name}`, vis: { kind: 'build' } }));
   // the day's levels are shared; their order and the order of answer choices change every time Hard starts
-  const ids = pickUnique(HARD_ID, 5, used, rand).map(id => makeLevel(id, Math.random, { time: HARD_TIME }));
+  // every Hard question level is titled the same way, so a title like "Does a wave exist?" can't give away a no-wave answer
+  const ids = pickUnique(HARD_ID, 5, used, rand).map(id => makeLevel(id, Math.random, { time: HARD_TIME, title: 'Name this wave' }));
   return shuffle([...builds, ...ids], Math.random);
 }
 
@@ -1454,4 +1455,5 @@ renderSplash(); if (!restoreEnd()) { renderPips(); startHero(); } initBoard();
 window.__game = { G, get LEVELS() { return LEVELS; }, set LEVELS(v) { LEVELS = v; }, makeLevel, rngFrom, LV, MODES, buildRun, keyOf, norm, gradeBuild, ALL_STATES, startRun, startLevel, lockIn, showEnd, shareText, TIER1, TIER2, TIER3, HARD_ID };
 })();
 </script>
+
 </body></html>
