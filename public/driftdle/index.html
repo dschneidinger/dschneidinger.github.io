@@ -1,0 +1,1110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Driftdle</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=STIX+Two+Text:ital,wght@0,400;0,600;1,400;1,600&display=swap">
+<style>
+/* Layout: a game console built on the Guiding Center Lab's scope. The field view is also the input: students aim each drift
+   straight from the particle. Single dark look on purpose (an oscilloscope bench); each drift keeps the hue it has in the lab. */
+:root{
+  color-scheme:dark;
+  --bg:#080b16; --bg-2:#0e1426; --panel:#121a30; --panel-2:#18213b; --line:rgba(160,175,215,.14); --line-2:rgba(160,175,215,.26);
+  --ink:#dfe5f3; --ink-2:#a6afc6; --ink-3:#6a7491;
+  --ion:#f0628f; --elec:#45b8ec; --dE:#e8ad3a; --dg:#5bb878; --dgrad:#9a82f5; --dcurv:#f08447; --dB:#8f97ab;
+  --good:#5bb878; --mid:#e8ad3a; --bad:#e2595d; --focus:#8fb0ff;
+  --font-display:"STIX Two Text","STIX Two Math","Cambria Math",Georgia,serif;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  --r:14px;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{background:var(--bg);color:var(--ink)}
+body{font-family:var(--font-body);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:18px 28px}
+.wrap{max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+i.v{font-family:var(--font-display);font-style:italic}
+b.v{font-family:var(--font-display);font-weight:600}
+
+/* header */
+.top{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.top h1{font-family:var(--font-display);font-style:italic;font-weight:600;font-size:28px;margin:0;letter-spacing:-.01em}
+.pips{display:flex;gap:4px;margin-left:auto;align-items:center;flex-wrap:wrap}
+.pip{width:20px;height:7px;border-radius:3px;background:var(--panel-2);display:flex;overflow:hidden}
+.pip i{flex:1}
+.pip.cur{outline:1px solid var(--ink-2);outline-offset:1px}
+.pip .tsep{width:6px}
+.scorebox{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:13px;color:var(--ink-3);white-space:nowrap}
+.scorebox b{color:var(--ink);font-weight:600}
+
+/* main board */
+.board{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:14px;align-items:start}
+.stage{position:relative;background:radial-gradient(120% 90% at 50% 40%,#131a2e,#060912 70%);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;aspect-ratio:1/1;max-width:100%}
+.stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.stage.aiming canvas{touch-action:none;cursor:crosshair}
+.overlay{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
+.count{font-family:var(--font-display);font-style:italic;font-weight:600;font-size:min(30vw,160px);color:var(--ink);text-shadow:0 0 40px rgba(143,176,255,.35);opacity:0}
+.count.pop{animation:pop .9s ease-out}
+@keyframes pop{0%{opacity:0;transform:scale(1.5)}25%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(.85)}}
+.stage .lvl{position:absolute;left:12px;top:12px;right:12px;display:flex;gap:10px;align-items:flex-start;pointer-events:none}
+.lvl .tag{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.lvl h2{font-family:var(--font-display);font-weight:600;font-size:22px;margin:0;line-height:1.15;text-wrap:balance}
+.clockring{margin-left:auto;position:relative;width:54px;height:54px;flex:none}
+.clockring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.clockring .n{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--font-mono);font-weight:600;font-size:16px;font-variant-numeric:tabular-nums}
+
+.side{display:flex;flex-direction:column;gap:12px;min-width:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+.card h3{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin:0 0 8px;font-weight:500}
+.given ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:5px}
+.given li{display:flex;gap:9px;align-items:baseline}
+.given li .sw{width:8px;height:8px;border-radius:2px;flex:none;transform:translateY(-1px)}
+.given p{margin:8px 0 0;color:var(--ink-3);font-size:12.5px}
+
+/* the two calls */
+.prompt{margin:0 0 10px;color:var(--ink-2);font-size:13px}
+.calls{display:flex;flex-direction:column;gap:8px}
+.call{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:stretch}
+.call .pick{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg-2);cursor:pointer;text-align:left;font-weight:600;min-width:0}
+.call .pick i{width:10px;height:10px;border-radius:50%;background:var(--c);flex:none}
+.call .pick[aria-pressed="true"]{border-color:var(--c);box-shadow:inset 3px 0 0 var(--c)}
+.call .pick .val{margin-left:auto;font-family:var(--font-mono);font-weight:500;font-size:12.5px;color:var(--ink-2);white-space:nowrap}
+.call .none{border:1px solid var(--line);background:var(--bg-2);border-radius:10px;padding:0 12px;font-size:12.5px;cursor:pointer}
+.call .none[aria-pressed="true"]{background:var(--c);border-color:var(--c);color:#0a0d18;font-weight:600}
+.call button:disabled{cursor:default}
+.actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px}
+.btn{border:1px solid var(--line-2);background:var(--panel-2);border-radius:10px;padding:9px 14px;font-weight:600;cursor:pointer}
+.btn.primary{background:var(--ink);color:#0a0d18;border-color:var(--ink)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.more{border-color:var(--mid);color:var(--mid);background:rgba(232,173,58,.1);animation:nudge 1.2s ease-in-out infinite}
+.btn.more small{font-family:var(--font-mono);font-weight:500;font-size:11px;margin-left:4px;opacity:.85}
+@keyframes nudge{0%,100%{box-shadow:0 0 0 0 rgba(232,173,58,.0)}50%{box-shadow:0 0 0 5px rgba(232,173,58,.18)}}
+@media (prefers-reduced-motion:reduce){.btn.more{animation:none}}
+.hint{color:var(--ink-3);font-size:12px}
+
+/* reveal */
+.reveal{display:flex;flex-direction:column;gap:10px}
+.reveal .head{display:flex;align-items:baseline;gap:10px}
+.reveal .head h4{margin:0;font-family:var(--font-display);font-size:20px;font-weight:600}
+.reveal .head .pts{margin-left:auto;font-family:var(--font-mono);font-weight:600;font-size:14px}
+.reveal p{margin:0;color:var(--ink-2)}
+.eq{font-family:var(--font-display);font-size:16px;color:var(--ink);overflow-x:auto;white-space:nowrap;padding:2px 0}
+.frac{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;font-size:.9em;line-height:1.1;margin:0 2px}
+.frac>span:first-child{border-bottom:1px solid currentColor;padding:0 2px}
+details summary{cursor:pointer;color:var(--ink-3);font-size:12px}
+.parts{display:grid;grid-template-columns:auto 1fr 1fr;gap:3px 12px;font-size:12.5px;font-variant-numeric:tabular-nums;margin-top:8px}
+.parts .h{color:var(--ink-3);font-family:var(--font-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em}
+.parts .n{font-family:var(--font-mono)}
+.parts .k{display:flex;gap:6px;align-items:center}
+.parts .k i{width:8px;height:8px;border-radius:2px}
+.parts .tot{border-top:1px solid var(--line);padding-top:3px;font-weight:600}
+
+/* splash and end screens */
+.screen{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:clamp(18px,4vw,34px);display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:28px}
+.screen h2{font-family:var(--font-display);font-weight:600;font-size:clamp(28px,4.4vw,42px);line-height:1.05;margin:0 0 12px;text-wrap:balance}
+.screen h2 em{color:var(--dE)}
+.screen p{color:var(--ink-2);max-width:60ch;margin:0 0 10px}
+.rules{margin:4px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+.rules li{display:grid;grid-template-columns:20px 1fr;gap:6px;color:var(--ink-2)}
+.rules li b{font-family:var(--font-mono);color:var(--ink-3);font-weight:500}
+.modes{display:flex;flex-direction:column;gap:10px}
+.mode{display:block;width:100%;text-align:left;border:1px solid var(--line-2);border-radius:12px;padding:14px 16px;background:var(--bg-2);cursor:pointer}
+.mode:hover{border-color:var(--ink-2)}
+.mode h4{margin:0 0 4px;font-size:17px;display:flex;align-items:baseline;gap:10px}
+.mode h4 small{font-family:var(--font-mono);font-weight:500;font-size:11.5px;color:var(--ink-3)}
+.mode p{margin:0;font-size:13px;color:var(--ink-2)}
+.big{font-family:var(--font-mono);font-weight:600;font-size:clamp(40px,8vw,68px);line-height:1;font-variant-numeric:tabular-nums}
+.big small{font-size:.35em;color:var(--ink-3);font-weight:500}
+.rank{font-family:var(--font-display);font-style:italic;font-size:22px;margin:6px 0 12px}
+.grid{font-family:var(--font-mono);background:var(--bg-2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;white-space:pre;overflow-x:auto;font-size:13px;line-height:1.5;margin:0 0 10px}
+.lb{display:flex;flex-direction:column;gap:6px}
+.lb ol{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px}
+.lb li{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:8px;align-items:center;padding:6px 8px;border-radius:8px;background:var(--bg-2);border:1px solid var(--line);font-variant-numeric:tabular-nums}
+.lb li.me{border-color:var(--ink-2)}
+.lb li .who{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb li .s{font-family:var(--font-mono);font-weight:600}
+.lb li .p{font-family:var(--font-mono);color:var(--ink-3)}
+.label{font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.08em;font-size:10.5px;color:var(--ink-3);margin:0 0 4px;font-weight:500}
+.foot{color:var(--ink-3);font-size:12px;max-width:90ch;margin:0}
+
+/* high-visibility mode: brighter, higher-contrast tokens, larger text; the canvas reads the same switch (hv) */
+:root[data-vis="high"]{
+  --bg:#000; --bg-2:#05070e; --panel:#0c1122; --panel-2:#1b2442; --line:rgba(225,232,250,.45); --line-2:rgba(225,232,250,.75);
+  --ink:#fff; --ink-2:#eef1f8; --ink-3:#cdd3e2;
+  --ion:#ff86b6; --elec:#62ccff; --dE:#ffdb4d; --dg:#45eaa8; --dgrad:#dca2ff; --dcurv:#ffa05a; --dB:#e4e8f2;
+  --good:#45eaa8; --mid:#ffdb4d; --bad:#ff6f73; --focus:#ffdb4d;
+}
+:root[data-vis="high"] body{font-size:16px}
+:root[data-vis="high"] :focus-visible{outline-width:3px}
+:root[data-vis="high"] .stage{background:#000;border-width:2px}
+:root[data-vis="high"] .card,:root[data-vis="high"] .screen{border-width:2px}
+:root[data-vis="high"] .lvl .tag,:root[data-vis="high"] .card h3,:root[data-vis="high"] .label,:root[data-vis="high"] .parts .h{font-size:12.5px}
+:root[data-vis="high"] .lvl h2{font-size:25px}
+@media (max-width:520px){:root[data-vis="high"] .lvl h2{font-size:22px}}
+.lvl h2{text-shadow:0 0 4px var(--bg),0 0 8px var(--bg),0 0 2px var(--bg)}
+:root[data-vis="high"] .given p,:root[data-vis="high"] .prompt,:root[data-vis="high"] .hint,:root[data-vis="high"] .foot,
+:root[data-vis="high"] details summary,:root[data-vis="high"] .parts,:root[data-vis="high"] .mode p{font-size:14.5px}
+:root[data-vis="high"] .call .pick .val,:root[data-vis="high"] .call .none,:root[data-vis="high"] .scorebox{font-size:14.5px}
+:root[data-vis="high"] .given li .sw,:root[data-vis="high"] .parts .k i{width:11px;height:11px}
+:root[data-vis="high"] .pip{height:10px}
+.visbtn{border:1px solid var(--line-2);background:var(--panel-2);border-radius:999px;padding:6px 12px;font-size:12.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:7px;white-space:nowrap}
+.visbtn::before{content:"";width:12px;height:12px;border-radius:50%;border:2px solid currentColor;background:linear-gradient(90deg,currentColor 50%,transparent 50%)}
+.visbtn[aria-pressed="true"]{background:var(--ink);color:#000;border-color:var(--ink)}
+
+@media (max-width:900px){.board,.screen{grid-template-columns:minmax(0,1fr)}}
+@media (prefers-reduced-motion:reduce){.count.pop{animation-duration:.01s}}
+</style>
+<style>#lb{display:none}</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header class="top">
+    <h1>Driftdle</h1>
+    <div class="pips" id="pips" aria-label="Level progress"></div>
+    <div class="scorebox" aria-live="polite">Score <b id="score">0</b> / <span id="maxScore">0</span></div>
+    <button class="visbtn" id="visBtn" aria-pressed="false" title="Brighter colors, thicker lines, larger text, labeled arrows">High visibility</button>
+  </header>
+
+  <!-- splash -->
+  <section class="screen" id="splash">
+    <div>
+      <h2>A particle sits in a field. <em>Which way does it drift?</em></h2>
+      <p>Call the guiding-center drift for an ion and an electron before the clock runs out. Then watch the real orbits.</p>
+      <ul class="rules">
+        <li><b>1</b><span>The view looks down the magnetic field: <span class="v">⊙</span> is <b class="v">B</b> out of the screen, <span class="v">⊗</span> into it.</span></li>
+        <li><b>2</b><span>Drag from the particle to aim the ion’s drift, then the electron’s. Arrows snap to 45°. Pick <b>No drift</b> if the guiding center stays put.</span></li>
+        <li><b>3</b><span>The right direction earns 100 per species and one notch off earns 40. At 10 seconds left you can buy one more minute for 50 points.</span></li>
+      </ul>
+    </div>
+    <div class="modes">
+      <button class="mode" id="easyBtn"><h4>Easy <small>12 levels · in order · 30–60 s</small></h4><p>One drift at a time in uniform fields, then two or three added together.</p></button>
+      <button class="mode" id="hardBtn"><h4>Hard <small>10 levels · shuffled · 60–75 s</small></h4><p>Random orientations, and mostly sources only: plates, wires, line charges, Earth. You build the fields yourself.</p></button>
+      <p class="foot">Units: <i class="v">B</i><sub>0</sub> = 1. The electron has ¼ the ion’s mass so its drifts are big enough to see. Both start with the same kinetic energy.</p>
+    </div>
+  </section>
+
+  <!-- game board -->
+  <section class="board" id="board" hidden>
+    <div class="stage" id="stage">
+      <canvas id="cv" tabindex="0" aria-label="Field view, looking down the magnetic field. Drag from the particle, or use the left and right arrow keys, to aim the selected species' drift."></canvas>
+      <div class="lvl">
+        <div><div class="tag" id="lvlTag">Level 1</div><h2 id="lvlName">E × B</h2></div>
+        <div class="clockring" id="clock" aria-label="Time left">
+          <svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="17" fill="none" stroke="rgba(160,175,215,.16)" stroke-width="3"/><circle id="clockArc" cx="20" cy="20" r="17" fill="none" stroke="var(--ink)" stroke-width="3" stroke-linecap="round" stroke-dasharray="106.8" stroke-dashoffset="0"/></svg>
+          <div class="n" id="clockN">30</div>
+        </div>
+      </div>
+      <div class="overlay"><div class="count" id="count">3</div></div>
+    </div>
+
+    <div class="side">
+      <div class="card given">
+        <h3>Given</h3>
+        <ul id="givenList"></ul>
+        <p id="givenNote"></p>
+      </div>
+
+      <div class="card">
+        <p class="prompt" id="prompt">Drag from the particle to aim each drift. Arrows snap to 45°.</p>
+        <div class="calls">
+          <div class="call" style="--c:var(--ion)" data-sp="ion">
+            <button class="pick" aria-pressed="true"><i></i>Ion <span class="val" id="valIon">not set</span></button>
+            <button class="none" aria-pressed="false">No drift</button>
+          </div>
+          <div class="call" style="--c:var(--elec)" data-sp="el">
+            <button class="pick" aria-pressed="false"><i></i>Electron <span class="val" id="valEl">not set</span></button>
+            <button class="none" aria-pressed="false">No drift</button>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn primary" id="lockBtn" disabled>Lock in</button>
+          <button class="btn more" id="moreBtn" hidden>I need more time <small>+60 s, −50 pts</small></button>
+          <button class="btn primary" id="nextBtn" hidden>Next level</button>
+          <button class="btn" id="replayBtn" hidden>Replay</button>
+          <span class="hint" id="lockHint"></span>
+        </div>
+      </div>
+
+      <div class="card reveal" id="reveal" hidden>
+        <div class="head"><h4 id="revTitle">Both calls right</h4><span class="pts" id="revPts"></span></div>
+        <p id="revWhy"></p>
+        <div class="eq" id="revEq"></div>
+        <details><summary>The numbers</summary><div class="parts" id="revParts"></div></details>
+      </div>
+    </div>
+  </section>
+
+  <!-- end -->
+  <section class="screen" id="end" hidden>
+    <div>
+      <p class="label" id="endMode">Final score</p>
+      <div class="big" id="endScore">0</div>
+      <div class="rank" id="endRank"></div>
+      <pre class="grid" id="endGrid"></pre>
+      <div class="actions" style="margin-top:0">
+        <button class="btn primary" id="copyBtn">Copy result</button>
+        <button class="btn" id="againBtn">Play again</button>
+        <span class="hint" id="copyMsg" aria-live="polite"></span>
+      </div>
+      <textarea id="copyFallback" readonly hidden style="width:100%;margin-top:8px;height:120px;background:var(--bg-2);color:var(--ink);border:1px solid var(--line);border-radius:8px;font-family:var(--font-mono);font-size:12px"></textarea>
+      <p class="foot" style="margin-top:12px">Each pair of squares is one level, ion then electron. Green: right direction. Orange: one notch (45°) off. Dark: missed.</p>
+    </div>
+    <div class="lb" id="lb">
+      <p class="label" id="lbTitle">Class leaderboard</p>
+      <p class="hint" id="lbMsg" style="margin:0">Connecting to the class board…</p>
+      <ol id="lbList"></ol>
+    </div>
+  </section>
+
+  <p class="foot">Drifts follow Chen, <i>Introduction to Plasma Physics and Controlled Fusion</i>, §2.2–2.3. The orbits are integrated with a Boris pusher.</p>
+</div>
+
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const mag = v => Math.hypot(v[0], v[1]);
+const ZERO = 1e-6;
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+/* ---------------- Chen's drifts ----------------
+   v_E = E×B/B², v_F = (1/q) F×B/B² with F = m g, F = m v∥² κ R̂c (curvature), F = −(m v⊥²/2) ∇ln B (grad-B).
+   With B = Bz ẑ: (a×B)/B² = (a_y/Bz, −a_x/Bz). */
+const SPECIES = {
+  ion: { q: 1, m: 1, vperp: 1, vparK: 1, col: '--ion', name: 'Ion' },
+  el: { q: -1, m: 0.25, vperp: 2, vparK: 2, col: '--elec', name: 'Electron' },
+};
+const crossB = (a, Bz) => [a[1] / Bz, -a[0] / Bz];
+function chen(L, key) {
+  const s = SPECIES[key], vpar = L.vpar * s.vparK;
+  const parts = {
+    E: crossB(L.E, L.Bz),
+    g: crossB([s.m * L.g[0] / s.q, s.m * L.g[1] / s.q], L.Bz),
+    grad: crossB([-0.5 * s.m * s.vperp ** 2 * L.G[0] / s.q, -0.5 * s.m * s.vperp ** 2 * L.G[1] / s.q], L.Bz),
+    curv: crossB([s.m * vpar ** 2 * L.kap * L.Rc[0] / s.q, s.m * vpar ** 2 * L.kap * L.Rc[1] / s.q], L.Bz),
+  };
+  const tot = Object.values(parts).reduce((a, p) => [a[0] + p[0], a[1] + p[1]], [0, 0]);
+  return { parts, tot };
+}
+// fields at a point: levels may give their own B(x, y), E(x, y) and κR̂c(x, y); otherwise the local model
+const Bfield = (L, x, y) => L.Bfun ? L.Bfun(x, y) : L.Bz * Math.exp(L.G[0] * x + L.G[1] * y);
+const Efield = (L, x, y) => L.Efun ? L.Efun(x, y) : L.E;
+const curvAt = (L, x, y) => L.curvFun ? L.curvFun(x, y) : [0, 0];
+
+/* ---------------- words for the explanations ---------------- */
+const X = '<i class="v">x</i>', Y = '<i class="v">y</i>';
+function dw(v) {
+  // "+x", "−y", or "the (+x, −y) diagonal": the nearest of the eight directions
+  const m = mag(v); if (m < ZERO) return 'nowhere';
+  const ax = Math.abs(v[0]) > 0.383 * m, ay = Math.abs(v[1]) > 0.383 * m, sx = v[0] > 0 ? '+' : '−', sy = v[1] > 0 ? '+' : '−';
+  return ax && ay ? `the (${sx}${X}, ${sy}${Y}) diagonal` : ax ? sx + X : sy + Y;
+}
+const io = Bz => Bz > 0 ? 'out of' : 'into';
+const vE = L => crossB(L.E, L.Bz);
+const ionPart = (L, ...ks) => ks.reduce((a, k) => { const p = chen(L, 'ion').parts[k]; return [a[0] + p[0], a[1] + p[1]]; }, [0, 0]);
+const sense = Bzs => Bzs > 0 ? 'clockwise' : 'counterclockwise';
+
+const fr = (a, b) => `<span class="frac"><span>${a}</span><span>${b}</span></span>`;
+const EQ = {
+  E: `<b>v</b><sub><i>E</i></sub> = ${fr('<b>E</b> × <b>B</b>', '<i>B</i><sup>2</sup>')}`,
+  g: `<b>v</b><sub><i>g</i></sub> = ${fr('<i>m</i>', '<i>q</i>')} ${fr('<b>g</b> × <b>B</b>', '<i>B</i><sup>2</sup>')}`,
+  grad: `<b>v</b><sub>∇<i>B</i></sub> = ± ${fr('1', '2')} <i>v</i><sub>⊥</sub><i>r</i><sub>L</sub> ${fr('<b>B</b> × ∇<i>B</i>', '<i>B</i><sup>2</sup>')}`,
+  curv: `<b>v</b><sub><i>R</i></sub> = ${fr('<i>m v</i><sub>∥</sub><sup>2</sup>', '<i>q</i>')} ${fr('<b>R</b><sub>c</sub> × <b>B</b>', '<i>R</i><sub>c</sub><sup>2</sup><i>B</i><sup>2</sup>')}`,
+  vac: `<b>v</b><sub><i>R</i></sub> + <b>v</b><sub>∇<i>B</i></sub> = ${fr('<i>m</i>', '<i>q</i>')} ${fr('<b>R</b><sub>c</sub> × <b>B</b>', '<i>R</i><sub>c</sub><sup>2</sup><i>B</i><sup>2</sup>')} (<i>v</i><sub>∥</sub><sup>2</sup> + ½<i>v</i><sub>⊥</sub><sup>2</sup>)`,
+  force: `<b>v</b><sub>gc</sub> = ${fr('1', '<i>q</i>')} ${fr('(<i>q</i><b>E</b> + <i>m</i><b>g</b>) × <b>B</b>', '<i>B</i><sup>2</sup>')}`,
+};
+
+/* ---------------- uniform-field levels ----------------
+   Fields in sim units at the start point: Bz = ±1 (out of / into the screen), E, g, G = ∇ln B, R̂c with κ = 1/Rc.
+   Curved fields are axisymmetric about a center of curvature a distance Rc behind −R̂c, so R̂c turns as the
+   guiding center drifts around it (see finalize). Texts that name directions are functions of the level, so the
+   hard mode can rotate and flip them. */
+const U = {
+  exb: { name: 'E × B', Bz: 1, E: [0.25, 0], eq: EQ.E,
+    why: 'The E × B drift does not depend on charge or mass. Ions and electrons move together, perpendicular to both <b class="v">E</b> and <b class="v">B</b>.' },
+  grav: { name: 'Gravity', Bz: 1, g: [0, -0.25], eq: EQ.g,
+    why: 'Gravity is the same push on both, but the drift goes as <i class="v">m</i>/<i class="v">q</i>: opposite directions, and the light electron barely moves.' },
+  grad: { name: 'Grad-B drift', Bz: 1, G: [0.15, 0], eq: EQ.grad,
+    why: 'The gyroradius is smaller where <i class="v">B</i> is stronger, so the orbit does not close. Ions and electrons drift in opposite directions along the contours of |<b class="v">B</b>|.' },
+  curv: { name: 'Curvature drift', Bz: 1, Rc: [1, 0], kap: 0.125, vpar: 1, eq: EQ.curv,
+    why: 'Following a bent field line, the particle feels a centrifugal force <i class="v">m v</i><sub>∥</sub>²/<i class="v">R</i><sub>c</sub> away from the center of curvature, and that force drifts ions and electrons in opposite directions. As the guiding center moves, <b class="v">R</b><sub>c</sub> turns with it, so the drift bends around the center of curvature.' },
+  none: { name: 'Uniform B, nothing else', Bz: 1, eq: '<b>v</b><sub>gc⊥</sub> = 0',
+    why: 'With no force across <b class="v">B</b> and no gradient, every orbit closes on itself. The guiding center stays put. Gyration alone is not a drift.' },
+  bflip: { name: 'B into the screen', Bz: -1, E: [0, 0.25], eq: EQ.E,
+    why: L => `Same E × B rule, but <b class="v">B</b> now points ${io(L.Bz)} the screen. With <b class="v">E</b> along ${dw(L.E)} and <b class="v">B</b> along ${L.Bz > 0 ? '+' : '−'}<i class="v">z</i>, the right-hand rule puts <b class="v">E</b> × <b class="v">B</b> along ${dw(vE(L))}.` },
+  gradflip: { name: 'Grad-B, flipped', hname: 'Grad-B', Bz: -1, G: [0, 0.15], eq: EQ.grad,
+    why: L => `The field gets stronger along ${dw(L.G)} and <b class="v">B</b> points ${io(L.Bz)} the screen. <b class="v">B</b> × ∇<i class="v">B</i> points along ${dw(ionPart(L, 'grad'))}, so ions go that way and electrons the opposite way.` },
+  vac: { name: 'Curved vacuum field', Bz: 1, Rc: [0, 1], kap: 0.125, vpar: 1, G: [0, -0.125], eq: EQ.vac,
+    why: 'In a vacuum, a curved field also weakens away from the center of curvature (|<b class="v">B</b>| ∝ 1/<i class="v">R</i><sub>c</sub>). The curvature and grad-B drifts point the same way and add, and both turn as the guiding center circles the center of curvature.' },
+  exbg: { name: 'E × B plus gravity', Bz: 1, E: [0.25, 0], g: [0, -0.15], eq: '<b>v</b><sub>gc</sub> = <b>v</b><sub><i>E</i></sub> + <b>v</b><sub><i>g</i></sub>',
+    why: 'Both species share the E × B drift. Gravity adds a sideways drift that is opposite for the two, and four times weaker for the electron here. Add the vectors.' },
+  bal: { name: 'Tug of war', Bz: 1, E: [0.1, 0], g: [-0.2, 0], eq: `<b>v</b><sub><i>E</i></sub> + <b>v</b><sub><i>g</i></sub> = ${fr('1', '<i>B</i><sup>2</sup>')} (<b>E</b> + ${fr('<i>m</i>', '<i>q</i>')}<b>g</b>) × <b>B</b>`,
+    why: L => `E × B points along ${dw(vE(L))} for both. The ion’s gravity drift points the opposite way and is twice as fast, so the ion goes along ${dw(chen(L, 'ion').tot)}. The electron’s gravity drift is reversed and four times slower, so it joins E × B and the electron goes along ${dw(chen(L, 'el').tot)}. Which one wins depends on the sizes, so check the speed ordering every time.` },
+  exgrad: { name: 'E × B against grad-B', Bz: 1, E: [0.05, 0], G: [0, 0.1], eq: '<b>v</b><sub>gc</sub> = <b>v</b><sub><i>E</i></sub> + <b>v</b><sub>∇<i>B</i></sub>',
+    why: L => `E × B carries both species along ${dw(vE(L))}. The gradient along ${dw(L.G)} pushes ions along ${dw(ionPart(L, 'grad'))} and electrons the opposite way, so the guiding centers split along two diagonals. They also cross into a different field strength, so <i class="v">E</i>/<i class="v">B</i> changes on the way and the measured drift differs a little from the start-point value.` },
+  all: { name: 'Everything at once', Bz: -1, E: [0, -0.1], g: [0, 0.2], Rc: [1, 0], kap: 0.125, vpar: 1, eq: '<b>v</b><sub>gc</sub> = <b>v</b><sub><i>E</i></sub> + <b>v</b><sub><i>g</i></sub> + <b>v</b><sub><i>R</i></sub>',
+    why: L => `With <b class="v">B</b> ${io(L.Bz)} the screen, E × B points along ${dw(vE(L))}. For the ion, the gravity drift points the other way and is twice as fast, so it wins; add the curvature drift along ${dw(ionPart(L, 'curv'))} for the diagonal ${dw(chen(L, 'ion').tot)}. The electron’s gravity drift is reversed and small, so E × B wins, and its curvature drift reverses too: ${dw(chen(L, 'el').tot)}.` },
+};
+const EASY = [['exb', 1], ['grav', 1], ['grad', 1], ['curv', 1], ['none', 1], ['bflip', 2], ['gradflip', 2], ['vac', 2], ['exbg', 2], ['bal', 3], ['exgrad', 3], ['all', 3]];
+const EASY_TIME = { 1: 30, 2: 45, 3: 60 };
+const HARD_POOL = ['gradflip', 'vac', 'exbg', 'bal', 'exgrad', 'all'];
+
+function finalize(L) {
+  L.E ||= [0, 0]; L.g ||= [0, 0]; L.G ||= [0, 0]; L.kap ||= 0; L.Rc ||= [0, 0]; L.vpar ||= 0;
+  if (L.kap > 0 && !L.curvFun) {
+    // field lines curve about an axis through C, so κR̂c = r̂/r measured from C; a vacuum field also has |B| ∝ 1/r
+    const R0 = 1 / L.kap, C = [-L.Rc[0] * R0, -L.Rc[1] * R0], Bz = L.Bz;
+    L.C = C;
+    L.curvFun = (x, y) => { const dx = x - C[0], dy = y - C[1], r2 = Math.max(dx * dx + dy * dy, .09); return [dx / r2, dy / r2]; };
+    if (mag(L.G) > ZERO) L.Bfun = (x, y) => Bz * R0 / Math.max(Math.hypot(x - C[0], y - C[1]), .3);
+  }
+  return L;
+}
+const rot = (v, k) => { let [x, y] = v || [0, 0]; for (let i = 0; i < k; i++) [x, y] = [-y, x]; return [x, y]; };
+function uniformLevel(key, opts) {
+  const L = { ...U[key], ...opts };
+  if (opts.k || opts.flip) {
+    // hard mode: rotate every in-plane vector by k quarter turns and maybe flip B
+    for (const f of ['E', 'g', 'G', 'Rc']) if (L[f]) L[f] = rot(L[f], opts.k || 0);
+    if (opts.flip) L.Bz = -L.Bz;
+  }
+  return finalize(L);
+}
+
+/* ---------------- source-only levels (hard mode) ----------------
+   Each generator draws its own signs and sides. Bfun/Efun/curvFun give the real fields for the orbits;
+   Bz, E, G, Rc, kap are the same fields at the start point, for Chen's formulas. */
+const sgn = s => s > 0 ? '+' : '−';
+const side = s => s < 0 ? 'left' : 'right';
+function wireField(L, xw, cur, d) {
+  // straight wire along y at x = xw, current cur (+1 up the screen); B is ±ẑ beside it, ∝ 1/r
+  const s0 = xw < 0 ? 1 : -1;
+  L.Bfun = (x, y) => { const dx = x - xw; return -cur * (dx >= 0 ? 1 : -1) * d / Math.max(Math.abs(dx), .3); };
+  L.curvFun = (x, y) => { const dx = x - xw; return [(dx >= 0 ? 1 : -1) / Math.max(Math.abs(dx), .3), 0]; };
+  L.Bz = -cur * s0; L.G = [-s0 / d, 0]; L.Rc = [s0, 0]; L.kap = 1 / d;
+}
+const wireWhy = L => `The wire’s grad-B and curvature drifts carry ions along the current, ${dw(ionPart(L, 'grad', 'curv'))}, and electrons the opposite way.`;
+const SOURCES = [
+  () => {
+    const top = pick([1, -1]), Bz = pick([1, -1]);
+    return { name: 'Capacitor plates', Bz, E: [0, -0.2 * top], showB: true, src: [{ k: 'plates', top }], eq: EQ.E,
+      given: [`Two large parallel plates: the top plate is charged ${sgn(top)}, the bottom plate ${sgn(-top)}`, `A uniform magnetic field ${io(Bz)} the screen`],
+      note: 'No other fields. Both particles start halfway between the plates.',
+      why: L => `Between the plates <b class="v">E</b> points from + to −, along ${dw(L.E)}. With <b class="v">B</b> ${io(L.Bz)} the screen, <b class="v">E</b> × <b class="v">B</b> points along ${dw(vE(L))}, the same for both species.` };
+  },
+  () => {
+    const s = pick([1, -1]), Bz = pick([1, -1]), r = pick([0.5, 2]), times = x => x === 2 ? 'twice' : x === 0.5 ? 'half' : `${x} times`;
+    const updown = v => v > 0 ? 'up' : 'down';
+    return { name: 'Charged plate in gravity', Bz, E: [0, 0.2 * s * r], g: [0, -0.2], showB: true, src: [{ k: 'sheet', top: false, sign: s, ground: true }], eq: EQ.force,
+      given: [`A large plate lying on the ground along the bottom edge, charged ${sgn(s)}`, 'Gravity pulls down the screen', `A uniform magnetic field ${io(Bz)} the screen`, `On the ion, the electric force is ${times(r)} as strong as its weight. On the electron (mass <i class="v">m</i>/4), it is ${times(4 * r)} its weight`],
+      note: 'Both particles start just above the plate.',
+      why: L => {
+        const fi = 0.2 * s * r - 0.2, fe = -0.2 * s * r - 0.05;
+        return `The plate’s <b class="v">E</b> points ${s > 0 ? 'up, away from' : 'down, toward'} it. On the ion, <i class="v">q</i><b class="v">E</b> points ${updown(s)} and its weight down, so the net force points ${updown(fi)}. On the electron, <i class="v">q</i><b class="v">E</b> points ${updown(-s)}${-s > 0 ? ' and beats its weight' : ' and adds to its weight'}, so the net force points ${updown(fe)}. The drift goes as <b class="v">F</b> × <b class="v">B</b>/<i class="v">q</i>: the ion along ${dw(chen(L, 'ion').tot)}, the electron along ${dw(chen(L, 'el').tot)}.`;
+      } };
+  },
+  () => {
+    const sd = pick([-1, 1]), s = pick([1, -1]), Bz = pick([1, -1]), xl = 5 * sd;
+    const Efun = (x, y) => { const dx = x - xl, r2 = Math.max(dx * dx + y * y, .04); return [s * dx / r2, s * y / r2]; };
+    return { name: 'A line of charge', Bz, E: Efun(0, 0), Efun, showB: true, src: [{ k: 'line', x: xl, y: 0, sign: s }],
+      eq: `${EQ.E},&ensp; <b>E</b> = ${fr('<i>λ</i>', '2π<i>ε</i><sub>0</sub><i>r</i>')} <b>r̂</b>`,
+      given: [`A long, thin, ${s > 0 ? 'positively' : 'negatively'} charged wire running straight out of the screen at the marked point`, `A uniform magnetic field ${io(Bz)} the screen`],
+      note: `No current flows in the charged wire. Both particles start 5 units to its ${side(-sd)}.`,
+      why: L => `<b class="v">E</b> points radially ${s > 0 ? 'away from the positive' : 'toward the negative'} line, here along ${dw(L.E)}. With <b class="v">B</b> ${io(L.Bz)} the screen, <b class="v">E</b> × <b class="v">B</b> points along ${dw(vE(L))} for both species. Because <b class="v">E</b> stays radial, the drift keeps turning: the guiding centers circle the line ${sense(s * L.Bz)}.` };
+  },
+  () => {
+    const sd = pick([-1, 1]), cur = pick([1, -1]), L = { name: 'A current-carrying wire', vpar: 1, src: [{ k: 'wire', x: 6 * sd, cur }], eq: EQ.vac };
+    wireField(L, 6 * sd, cur, 6);
+    L.given = [`A long straight wire along the ${side(sd)} of the screen, carrying current <i class="v">I</i> ${cur > 0 ? 'up' : 'down'} the screen`, 'Nothing else: the wire’s own magnetic field is the only field'];
+    L.note = `Both particles start 6 units to the ${side(-sd)} of the wire and stream along <b class="v">B</b> with <i class="v">v</i><sub>∥</sub> ≠ 0.`;
+    L.why = L => `By the right-hand rule, <b class="v">B</b> points ${io(L.Bz)} the screen on this side of the wire. It weakens as 1/<i class="v">r</i>, so ∇<i class="v">B</i> points toward the wire, and its field lines circle the wire, so <b class="v">R</b><sub>c</sub> points away from it. Grad-B and curvature drifts add: ions drift along the current, ${dw(ionPart(L, 'grad', 'curv'))}, and electrons against it.`;
+    return L;
+  },
+  () => {
+    const sd = pick([-1, 1]), north = Math.random() < .5, xe = 15 * sd, s0 = -sd, Bz = north ? 1 : -1;
+    return { name: 'Earth’s ring current', Bz, G: [-0.2 * s0, 0], Rc: [s0, 0], kap: 0.2, vpar: 0.7, src: [{ k: 'earth', x: xe, north }], eq: EQ.vac,
+      Bfun: (x, y) => { const r = Math.hypot(x - xe, y); return Bz * (15 / r) ** 3; },
+      curvFun: (x, y) => { const dx = x - xe, r2 = dx * dx + y * y; return [3 * dx / r2, 3 * y / r2]; },
+      given: [`You are in Earth’s magnetic equatorial plane, looking down from above the ${north ? 'North' : 'South'} Pole`, `Earth is off the ${side(sd)} side of the screen. Its dipole field is the only field`],
+      note: 'The particles are trapped on dipole field lines, bouncing north and south with <i class="v">v</i><sub>∥</sub> ≠ 0.',
+      why: L => `At the equator, the dipole field points north, ${north ? 'toward' : 'away from'} you. It weakens as 1/<i class="v">r</i><sup>3</sup>, so ∇<i class="v">B</i> points toward Earth, and its field lines bow outward, so <b class="v">R</b><sub>c</sub> points away from Earth. Both drifts send ions west, ${sense(L.Bz)} seen from above the ${north ? 'North' : 'South'} Pole, and electrons east. This is the ring current.` };
+  },
+  () => {
+    const sd = pick([-1, 1]), cur = pick([1, -1]), top = Math.random() < .5, s = pick([1, -1]);
+    const L = { name: 'Wire and charged plane', vpar: 1.25, E: [0, (top ? -0.2 : 0.2) * s], src: [{ k: 'wire', x: 10 * sd, cur }, { k: 'sheet', top, sign: s }], eq: '<b>v</b><sub>gc</sub> = <b>v</b><sub><i>E</i></sub> + <b>v</b><sub>∇<i>B</i></sub> + <b>v</b><sub><i>R</i></sub>' };
+    wireField(L, 10 * sd, cur, 10);
+    L.given = [`A long straight wire 10 units to the ${side(sd)}, off the screen, carrying current <i class="v">I</i> ${cur > 0 ? 'up' : 'down'} the screen`, `A large ${s > 0 ? 'positively' : 'negatively'} charged plane along the ${top ? 'top' : 'bottom'} edge`];
+    L.note = 'At the start point, the electric drift and the wire’s magnetic drift are about equally fast. Both species stream along <b class="v">B</b> with <i class="v">v</i><sub>∥</sub> ≠ 0.';
+    L.why = L => `The plane’s <b class="v">E</b> points ${s > 0 ? 'away from' : 'toward'} it, along ${dw(L.E)}, and the wire’s <b class="v">B</b> points ${io(L.Bz)} the screen here, so <b class="v">E</b> × <b class="v">B</b> points along ${dw(vE(L))} for both. ${wireWhy(L)} Add them for two diagonals. Because <i class="v">B</i> changes as the guiding centers move, the measured drift differs a little from the start-point value.`;
+    return L;
+  },
+  () => {
+    const sd = pick([-1, 1]), cur = pick([1, -1]), ly = pick([1, -1]), s = pick([1, -1]), yl = 5 * ly;
+    const Efun = (x, y) => { const dy = y - yl, r2 = Math.max(x * x + dy * dy, .04); return [s * x / r2, s * dy / r2]; };
+    const L = { name: 'Line charge beside a wire', vpar: 1, Efun, src: [{ k: 'wire', x: 8 * sd, cur }, { k: 'line', x: 0, y: yl, sign: s }], eq: '<b>v</b><sub>gc</sub> = <b>v</b><sub><i>E</i></sub> + <b>v</b><sub>∇<i>B</i></sub> + <b>v</b><sub><i>R</i></sub>' };
+    wireField(L, 8 * sd, cur, 8); L.E = Efun(0, 0);
+    L.given = [`A long, thin, ${s > 0 ? 'positively' : 'negatively'} charged wire running out of the screen, 5 units ${ly > 0 ? 'above' : 'below'} the particles`, `A long straight wire 8 units to the ${side(sd)}, off the screen, carrying current <i class="v">I</i> ${cur > 0 ? 'up' : 'down'} the screen`];
+    L.note = 'No current in the charged wire, no net charge on the current-carrying one. Both species stream along <b class="v">B</b> with <i class="v">v</i><sub>∥</sub> ≠ 0.';
+    L.why = L => `The line charge’s <b class="v">E</b> points ${s > 0 ? 'away from' : 'toward'} it, along ${dw(L.E)}. The current’s <b class="v">B</b> points ${io(L.Bz)} the screen here, so <b class="v">E</b> × <b class="v">B</b> points along ${dw(vE(L))} for both. ${wireWhy(L)} Add them for two diagonals that bend as <b class="v">E</b> turns around the line charge.`;
+    return L;
+  },
+];
+
+/* ---------------- runs ---------------- */
+function buildRun(mode) {
+  if (mode === 'easy') return EASY.map(([k, tier]) => Object.assign(uniformLevel(k, {}), { tier, time: EASY_TIME[tier] }));
+  const uni = shuffle(HARD_POOL.slice()).slice(0, 3).map(k => {
+    const L = uniformLevel(k, { k: Math.floor(Math.random() * 4), flip: Math.random() < .5 });
+    L.name = U[k].hname || U[k].name; L.time = 60; return L;
+  });
+  const src = SOURCES.map(gen => Object.assign(finalize(gen()), { time: 75 }));
+  return shuffle(uni.concat(src));
+}
+const txt = (v, L) => typeof v === 'function' ? v(L) : v;
+let LEVELS = buildRun('easy');
+
+const TIER_NAMES = { 1: 'Tier 1', 2: 'Tier 2', 3: 'Tier 3' };
+const tLimit = () => LEVELS[G.i].time;
+const EXTRA_T = 60, EXTRA_PENALTY = 50, EXTRA_AT = 10; // "I need more time": once per level, shown from 10 s left
+const PTS_PER = 100, NOTCH = 40, BONUS = 50, MAX_LEVEL = 2 * PTS_PER + BONUS;
+const maxTotal = () => LEVELS.length * MAX_LEVEL;
+
+/* local drift for the guiding-center estimate, from the fields at (x, y) */
+function driftAt(L, key, x, y) {
+  const s = SPECIES[key], vpar = L.vpar * s.vparK, Bz = Bfield(L, x, y), E = Efield(L, x, y);
+  const k = L.curvFun ? L.curvFun(x, y) : [0, 0], h = 1e-3, lb = (a, b) => Math.log(Math.abs(Bfield(L, a, b)));
+  const gl = [(lb(x + h, y) - lb(x - h, y)) / (2 * h), (lb(x, y + h) - lb(x, y - h)) / (2 * h)];
+  const vp2 = s.vperp ** 2 * Math.abs(Bz / Bfield(L, 0, 0));
+  const F = [0, 1].map(i => s.m * L.g[i] - 0.5 * s.m * vp2 * gl[i] + s.m * vpar * vpar * k[i]);
+  const e = crossB(E, Bz), f = crossB([F[0] / s.q, F[1] / s.q], Bz);
+  return [e[0] + f[0], e[1] + f[1]];
+}
+
+/* ---------------- orbit integrator (Boris, 2D across B) ---------------- */
+function simulate(L, key, T) {
+  const s = SPECIES[key], qm = s.q / s.m, vpar = L.vpar * s.vparK;
+  const vd = chen(L, key).tot;
+  const Bat = (x, y) => Bfield(L, x, y);
+  // non-magnetic acceleration: qE/m + g + v∥² κR̂c, all evaluated where the particle is
+  const acc = (x, y) => {
+    const E = Efield(L, x, y), k = L.curvFun ? L.curvFun(x, y) : [0, 0];
+    return [qm * E[0] + L.g[0] + vpar * vpar * k[0], qm * E[1] + L.g[1] + vpar * vpar * k[1]];
+  };
+  // start with the guiding center at the origin, moving in the drift frame
+  const ph = key === 'ion' ? 0.3 : 2.1;
+  let ux = s.vperp * Math.cos(ph), uy = s.vperp * Math.sin(ph);
+  const B0 = Bat(0, 0), f = s.m / (s.q * B0 * B0);
+  let x = -f * (uy * B0), y = -f * (-ux * B0);
+  let vx = vd[0] + ux, vy = vd[1] + uy;
+  const dt = 0.01, n = Math.ceil(T / dt), every = 2;
+  const pts = [], gcs = [];
+  for (let i = 0; i <= n; i++) {
+    if (i % every === 0) {
+      const Bz = Bat(x, y), ff = s.m / (s.q * Bz * Bz), d = driftAt(L, key, x, y), wx = vx - d[0], wy = vy - d[1];
+      pts.push(x, y); gcs.push(x + ff * (wy * Bz), y + ff * (-wx * Bz));
+    }
+    const Bz = Bat(x, y), [ax, ay] = acc(x, y);
+    vx += ax * dt / 2; vy += ay * dt / 2;
+    const t = qm * Bz * dt / 2, sc = 2 * t / (1 + t * t);
+    const px = vx + vy * t, py = vy - vx * t;
+    vx += py * sc; vy -= px * sc;
+    vx += ax * dt / 2; vy += ay * dt / 2;
+    x += vx * dt; y += vy * dt;
+  }
+  // measured drift: guiding-center displacement over the first two ion gyroperiods
+  const win = Math.min(4 * Math.PI, T), k = Math.round(win / (dt * every));
+  const meas = [(gcs[2 * k] - gcs[0]) / (k * dt * every), (gcs[2 * k + 1] - gcs[1]) / (k * dt * every)];
+  return { pts, gcs, meas, dtp: dt * every };
+}
+
+/* ---------------- state ---------------- */
+const G = {
+  mode: 'easy', i: 0, phase: 'splash', tLeft: 30, ans: { ion: null, el: null }, active: 'ion', results: [],
+  sims: null, anim: 0, animT: 0, total: 0
+};
+// answer: null = unanswered, 'none' = no drift, number = angle in degrees (0 = +x, 90 = +y, multiples of 45)
+
+/* ---------------- stage drawing ---------------- */
+const cv = $('#cv'), ctx = cv.getContext('2d');
+const VIEW = 7.5; // half-width in sim units
+let W = 0, H = 0, DPR = 1;
+function sizeStage() {
+  const r = cv.getBoundingClientRect(); DPR = Math.min(2, devicePixelRatio || 1);
+  W = r.width; H = r.height; cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0); drawStage();
+}
+const S2P = () => Math.min(W, H) / (2 * VIEW);
+const toPx = (x, y) => [W / 2 + x * S2P(), H / 2 - y * S2P()];
+
+function arrow(c, x0, y0, x1, y1, col, w = 2, head = 8, dash) {
+  const a = Math.atan2(y1 - y0, x1 - x0), l = Math.hypot(x1 - x0, y1 - y0);
+  if (l < 1) return;
+  const hh = Math.min(head, l * 0.6);
+  c.save(); c.strokeStyle = col; c.fillStyle = col; c.lineWidth = w; c.lineCap = 'round';
+  if (dash) c.setLineDash(dash);
+  c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1 - Math.cos(a) * hh * 0.7, y1 - Math.sin(a) * hh * 0.7); c.stroke();
+  c.setLineDash([]);
+  c.beginPath(); c.moveTo(x1, y1);
+  c.lineTo(x1 - Math.cos(a - 0.42) * hh, y1 - Math.sin(a - 0.42) * hh);
+  c.lineTo(x1 - Math.cos(a + 0.42) * hh, y1 - Math.sin(a + 0.42) * hh); c.closePath(); c.fill();
+  c.restore();
+}
+function alpha(hex, a) {
+  const h = hex.replace('#', ''); const n = parseInt(h.length === 3 ? h.split('').map(c => c + c).join('') : h, 16);
+  return `rgba(${n >> 16 & 255},${n >> 8 & 255},${n & 255},${a})`;
+}
+const GLYPH = ['→', '↗', '↑', '↖', '←', '↙', '↓', '↘'];
+const glyphOf = v => GLYPH[((Math.round(Math.atan2(v[1], v[0]) / (Math.PI / 4)) % 8) + 8) % 8];
+
+const hv = () => document.documentElement.dataset.vis === 'high';
+const BAYER = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]].map(r => r.map(v => (v + .5) / 16));
+function drawFields(L) {
+  const c = ctx, s = S2P(), H2 = hv();
+  // the legend's corner (top right): lattice arrows that would end up under it are skipped
+  const inLegend = (x, y) => { const [px, py] = toPx(x, y); return px > W - (W < 520 ? 110 : 250) && py < 88 + 4 * (H2 ? 28 : 24); };
+  c.clearRect(0, 0, W, H);
+  const colB = css('--dB'), colE = css('--dE'), colG = css('--dgrad'), colR = css('--dcurv'), colg = css('--dg');
+  // source levels keep their fields hidden until the orbits run
+  const hide = L.src && !(G.phase === 'run' || G.phase === 'reveal'), src = !!L.src;
+  const B0 = Math.abs(Bfield(L, 0, 0)), E0 = mag(Efield(L, 0, 0));
+  // grad-B shading: brighter where |B| is larger
+  const Gm = mag(L.G);
+  if (Gm > ZERO && !hide) {
+    const ux = L.G[0] / Gm, uy = L.G[1] / Gm;
+    const [ax, ay] = toPx(-ux * VIEW * 1.3, -uy * VIEW * 1.3), [bx, by] = toPx(ux * VIEW * 1.3, uy * VIEW * 1.3);
+    const gr = c.createLinearGradient(ax, ay, bx, by);
+    gr.addColorStop(0, alpha(colG, 0)); gr.addColorStop(1, alpha(colG, H2 ? .3 : .14));
+    c.fillStyle = gr; c.fillRect(0, 0, W, H);
+  }
+  // curvature: dashed circles of equal curvature around the center of curvature (uniform-field levels only)
+  if (L.C && !src) {
+    const [ccx, ccy] = toPx(L.C[0], L.C[1]), R0 = 1 / L.kap;
+    c.save(); c.strokeStyle = alpha(colR, H2 ? .7 : .3); c.lineWidth = H2 ? 2.2 : 1.2; c.setLineDash([3, 6]);
+    for (let k = -1; k <= 2; k++) { c.beginPath(); c.arc(ccx, ccy, (R0 + k * 2.5) * s, 0, 7); c.stroke(); }
+    c.restore();
+  }
+  // B symbols: all the same size; their density follows |B|, so a gradient shows as crowding toward strong field
+  if (!hide || L.showB) {
+    const h = 0.8, xr = W / 2 / s, yr = H / 2 / s;
+    for (let i = Math.floor(-xr / h); i <= xr / h; i++) for (let j = Math.floor(-yr / h); j <= yr / h; j++) {
+      const x = i * h, y = j * h;
+      if (Math.hypot(x, y) < 1.1) continue; // keep the start point clear
+      const Bz = Bfield(L, x, y), dens = Math.max(.07, Math.min(1, 0.2 * (Math.abs(Bz) / B0) ** 1.8)); // steeper than |B| so the crowding reads at a glance
+      if (!isFinite(dens) || BAYER[((i % 4) + 4) % 4][((j % 4) + 4) % 4] >= dens) continue;
+      const near = (L.src || []).some(o => (o.k === 'wire' && Math.abs(x - o.x) < .6) || (o.k === 'earth' && Math.hypot(x - o.x, y) < 9.2) || (o.k === 'line' && Math.hypot(x - o.x, y - o.y) < .9));
+      if (near) continue;
+      const [px, py] = toPx(x, y), r = H2 ? 5 : 3.6;
+      if (py < 70) continue; // keep the level title clear
+      c.strokeStyle = alpha(colB, H2 ? .85 : .42); c.fillStyle = c.strokeStyle; c.lineWidth = H2 ? 1.8 : 1.1;
+      c.beginPath(); c.arc(px, py, r, 0, 7); c.stroke();
+      if (Bz > 0) { c.beginPath(); c.arc(px, py, H2 ? 1.9 : 1.1, 0, 7); c.fill(); }
+      else { const d = r * .62; c.beginPath(); c.moveTo(px - d, py - d); c.lineTo(px + d, py + d); c.moveTo(px + d, py - d); c.lineTo(px - d, py + d); c.stroke(); }
+    }
+  }
+  // E arrows on a sparse lattice, following E(x, y) where it varies
+  if (E0 > ZERO && !hide) {
+    for (let gx = -2; gx < 2; gx++) for (let gy = -2; gy < 2; gy++) {
+      const x = (gx + .5) * 3.75, y = (gy + .5) * 3.75;
+      if ((L.src || []).some(o => o.k === 'line' && Math.hypot(x - o.x, y - o.y) < 1.4)) continue;
+      if (toPx(x, y)[1] < 80 || inLegend(x, y)) continue;
+      const E = Efield(L, x, y), Em = mag(E); if (Em < ZERO) continue;
+      const len = 0.95 * Math.max(.45, Math.min(1.5, Em / E0)), ux = E[0] / Em, uy = E[1] / Em;
+      const [ax, ay] = toPx(x - ux * len, y - uy * len), [bx, by] = toPx(x + ux * len, y + uy * len);
+      arrow(c, ax, ay, bx, by, alpha(colE, H2 ? 1 : .55), H2 ? 3.5 : 2, H2 ? 13 : 8);
+      if (H2) { c.save(); c.fillStyle = colE; c.font = 'italic 600 18px "STIX Two Text", Georgia, serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('E', ax - ux * 12, ay + uy * 12); c.restore(); }
+    }
+  }
+  // gravity: bold green arrows on the half-offset lattice, each tagged g
+  if (mag(L.g) > ZERO) {
+    const gm = mag(L.g), ux = L.g[0] / gm, uy = L.g[1] / gm, len = 0.8;
+    for (let gx = -1; gx <= 1; gx++) for (let gy = -1; gy <= 1; gy++) {
+      const x = gx * 5 + 1.6 * gy, y = gy * 5 - 1.6 * gx; // a tilted lattice, so the g arrows sit between the E arrows
+      if (Math.hypot(x, y) < 2 || toPx(x, y)[1] < 80 || inLegend(x, y)) continue;
+      const [ax, ay] = toPx(x - ux * len, y - uy * len), [bx, by] = toPx(x + ux * len, y + uy * len);
+      arrow(c, ax, ay, bx, by, alpha(colg, H2 ? 1 : .9), H2 ? 5 : 3.5, H2 ? 16 : 12);
+      c.save(); c.fillStyle = colg; c.font = `italic 600 ${H2 ? 19 : 15}px "STIX Two Text", Georgia, serif`; c.textAlign = 'center'; c.textBaseline = 'middle';
+      const [tx, ty] = toPx(x - ux * (len + .35), y - uy * (len + .35)); c.fillText('g', tx, ty); c.restore();
+    }
+  }
+  if (src) drawSources(L);
+  // legend, top right below the clock: each field with an arrow in its own color and direction
+  c.save(); c.textAlign = 'right'; c.textBaseline = 'middle';
+  let ly = 88;
+  const narrow = W < 520, tx = W - 14, font = `${H2 ? 600 : 500} ${H2 ? 15.5 : 12.5}px "IBM Plex Sans", system-ui, sans-serif`;
+  const line = (t, col, v) => {
+    c.font = font; c.fillStyle = col; c.fillText(t, tx - (v ? 30 : 0), ly);
+    if (v) { const m = mag(v), cx = tx - 11, ux = v[0] / m * 10, uy = -v[1] / m * 10; arrow(c, cx - ux, ly - uy, cx + ux, ly + uy, col, H2 ? 4 : 3, H2 ? 11 : 9); }
+    ly += H2 ? 28 : 24;
+  };
+  if (!hide || L.showB) line(narrow ? (L.Bz > 0 ? 'B ⊙ out' : 'B ⊗ in') : L.Bz > 0 ? 'B ⊙ out of the screen' : 'B ⊗ into the screen', css('--ink-2'));
+  else line(narrow ? 'Fields hidden' : 'Fields hidden: build them yourself', css('--ink-2'));
+  if (E0 > ZERO && !hide) line('E', colE, Efield(L, 0, 0));
+  if (mag(L.g) > ZERO) line(narrow ? 'g' : 'gravity g', colg, L.g);
+  if (Gm > ZERO && !hide) line(narrow ? '∇B' : '∇B: stronger B, denser symbols', colG, L.G);
+  if (src && !hide && !narrow) { c.font = '500 12px "IBM Plex Sans", system-ui, sans-serif'; c.fillStyle = css('--ink-3'); c.fillText('the fields you had to build', tx, ly); }
+  c.restore();
+  // axes
+  const bottomSrc = src && L.src.some(o => o.k === 'plates' || (o.k === 'sheet' && !o.top));
+  const ox = W - 50, oy = H - 20 - (bottomSrc ? 22 : 0);
+  c.save(); c.font = 'italic 13px "STIX Two Text", Georgia, serif'; c.fillStyle = css('--ink-3');
+  arrow(c, ox, oy, ox + 26, oy, css('--ink-3'), 1.3, 5); arrow(c, ox, oy, ox, oy - 26, css('--ink-3'), 1.3, 5);
+  c.fillText('x', ox + 30, oy + 4); c.fillText('y', ox - 3, oy - 31); c.restore();
+}
+
+function drawSources(L) {
+  // in high-visibility mode the labels grow and get a dark outline so field symbols can't swallow them
+  const H2 = hv(), px2 = n => H2 ? n + 3 : n;
+  const lab = (t, x, y) => { if (H2) { ctx.save(); ctx.strokeStyle = '#000'; ctx.lineWidth = 5; ctx.lineJoin = 'round'; ctx.strokeText(t, x, y); ctx.restore(); } ctx.fillText(t, x, y); };
+  const c = ctx, s = S2P(), ink = css('--ink'), ink2 = css('--ink-2'), colI = css('--dE');
+  c.save();
+  c.textBaseline = 'middle'; c.textAlign = 'center';
+  const plate = (y, sign) => {
+    c.fillStyle = '#323b58'; c.fillRect(8, y - 6, W - 16, 12);
+    c.fillStyle = ink; c.font = `700 ${px2(12)}px "IBM Plex Mono", monospace`;
+    for (let x = 30; x < W - 20; x += 40) lab(sgn(sign), x, y + .5);
+  };
+  for (const o of L.src) {
+    if (o.k === 'plates') { plate(76, o.top); plate(H - 14, -o.top); }
+    else if (o.k === 'sheet') {
+      const y = o.top ? 76 : H - 14; plate(y, o.sign);
+      c.fillStyle = ink2; c.font = `500 ${px2(12)}px "IBM Plex Sans", system-ui, sans-serif`;
+      lab(o.ground ? 'charged plate on the ground' : 'charged plane', W / 2, y + (o.top ? 20 : -20));
+    } else if (o.k === 'line') {
+      const [px, py] = toPx(o.x, o.y);
+      c.fillStyle = '#323b58'; c.strokeStyle = ink2; c.lineWidth = 1.5; c.beginPath(); c.arc(px, py, 11, 0, 7); c.fill(); c.stroke();
+      c.fillStyle = ink; c.font = `700 ${px2(15)}px "IBM Plex Mono", monospace`; lab(sgn(o.sign), px, py + 1);
+      c.font = `italic 600 ${px2(14)}px "STIX Two Text", Georgia, serif`; c.textAlign = 'left';
+      lab(`λ ${o.sign > 0 ? '>' : '<'} 0`, px + 17, py + 1); c.textAlign = 'center';
+    } else if (o.k === 'wire') {
+      const up = o.cur > 0;
+      if (Math.abs(o.x) < VIEW) {
+        const [px] = toPx(o.x, 0);
+        c.strokeStyle = ink2; c.lineWidth = 4; c.beginPath(); c.moveTo(px, 0); c.lineTo(px, H); c.stroke();
+        for (let y = H * .25; y < H; y += H * .5) arrow(c, px, y + (up ? 16 : -16), px, y + (up ? -16 : 16), colI, 3, 10);
+        c.fillStyle = ink; c.font = `italic 600 ${px2(17)}px "STIX Two Text", Georgia, serif`; c.textAlign = o.x < 0 ? 'left' : 'right';
+        lab('I', px + (o.x < 0 ? 10 : -10), H * .5);
+      } else {
+        const left = o.x < 0, ex = left ? 4 : W - 4, ax = left ? 14 : W - 14;
+        c.strokeStyle = alpha(ink2, .5); c.lineWidth = 2; c.setLineDash([6, 6]); c.beginPath(); c.moveTo(ex, 0); c.lineTo(ex, H); c.stroke(); c.setLineDash([]);
+        arrow(c, ax, H * .5 + (up ? 16 : -16), ax, H * .5 + (up ? -16 : 16), colI, 3, 10);
+        c.fillStyle = ink2; c.textAlign = left ? 'left' : 'right'; c.font = `500 ${px2(12)}px "IBM Plex Sans", system-ui, sans-serif`;
+        lab(`wire, ${Math.abs(o.x)} units ${left ? 'left' : 'right'}`, left ? 24 : W - 24, H * .5);
+      }
+    } else if (o.k === 'earth') {
+      const [px, py] = toPx(o.x, 0), R = 8.6 * s, left = o.x < 0;
+      const gr = c.createRadialGradient(px + R * .3, py - R * .3, R * .1, px, py, R);
+      gr.addColorStop(0, '#3d7fb8'); gr.addColorStop(.7, '#1f4d7a'); gr.addColorStop(1, '#14324f');
+      c.fillStyle = gr; c.beginPath(); c.arc(px, py, R, 0, 7); c.fill();
+      const lx = left ? px + R + 12 : px - R - 12;
+      c.fillStyle = ink; c.textAlign = left ? 'left' : 'right'; c.font = `600 ${px2(14)}px "IBM Plex Sans", system-ui, sans-serif`;
+      lab('Earth', lx, py - 34);
+      c.font = `500 ${px2(11)}px "IBM Plex Sans", system-ui, sans-serif`; c.fillStyle = ink2; lab(`${o.north ? 'North' : 'South'} Pole toward you`, lx, py - 17);
+    }
+  }
+  c.restore();
+}
+
+function drawOrbits(frac) {
+  const c = ctx, H2 = hv();
+  for (const key of ['ion', 'el']) {
+    const sim = G.sims[key], col = css(SPECIES[key].col);
+    const n = Math.max(2, Math.floor((sim.pts.length / 2) * frac));
+    c.save(); c.lineJoin = 'round'; c.lineCap = 'round';
+    c.strokeStyle = alpha(col, H2 ? .75 : .55); c.lineWidth = H2 ? 1.8 : 1.2; c.beginPath();
+    for (let i = 0; i < n; i++) { const [px, py] = toPx(sim.pts[2 * i], sim.pts[2 * i + 1]); i ? c.lineTo(px, py) : c.moveTo(px, py); }
+    c.stroke();
+    // guiding center path
+    c.strokeStyle = col; c.lineWidth = H2 ? 5.5 : 3.2; c.beginPath();
+    for (let i = 0; i < n; i++) { const [px, py] = toPx(sim.gcs[2 * i], sim.gcs[2 * i + 1]); i ? c.lineTo(px, py) : c.moveTo(px, py); }
+    c.stroke();
+    const [hx, hy] = toPx(sim.pts[2 * n - 2], sim.pts[2 * n - 1]);
+    c.fillStyle = col; c.shadowColor = col; c.shadowBlur = 10; c.beginPath(); c.arc(hx, hy, H2 ? 7 : 4.5, 0, 7); c.fill();
+    if (H2) { // name each species at the end of its guiding-center path, so color is never the only cue
+      const [gx, gy] = toPx(sim.gcs[2 * n - 2], sim.gcs[2 * n - 1]);
+      c.shadowBlur = 0; tag(c, SPECIES_TAG[key], gx + 12, gy - 12, col);
+    }
+    c.restore();
+  }
+}
+const SPECIES_TAG = { ion: 'ion', el: 'electron' };
+function tag(c, t, x, y, col) {
+  // a label on a dark pill so it stays readable over field symbols
+  c.save(); c.font = '700 15px "IBM Plex Sans", system-ui, sans-serif'; c.textBaseline = 'middle'; c.textAlign = 'left';
+  const w = c.measureText(t).width + 12; x = Math.min(Math.max(x, 4), W - w - 4); y = Math.min(Math.max(y, 14), H - 14);
+  c.fillStyle = 'rgba(0,0,0,.82)'; c.strokeStyle = col; c.lineWidth = 1.5;
+  c.beginPath(); c.roundRect(x, y - 11, w, 22, 6); c.fill(); c.stroke();
+  c.fillStyle = col; c.fillText(t, x + 6, y + .5); c.restore();
+}
+const ARROW_LEN = { ion: 3.0, el: 2.2 }; // sim units; the electron's is shorter so both show when they agree
+function drawCalls() {
+  // the student's two arrows, from the start point; dashed once locked in
+  const c = ctx, s = S2P(), [ox, oy] = toPx(0, 0), aiming = G.phase === 'predict', H2 = hv();
+  if (aiming) {
+    // the eight allowed directions, in the active species' color
+    const col = css(SPECIES[G.active].col), R = ARROW_LEN[G.active] * s;
+    c.save(); c.strokeStyle = alpha(col, H2 ? .8 : .35); c.lineWidth = H2 ? 3 : 2; c.lineCap = 'round';
+    for (let k = 0; k < 8; k++) { const t = k * Math.PI / 4; c.beginPath(); c.moveTo(ox + Math.cos(t) * (R - 4), oy - Math.sin(t) * (R - 4)); c.lineTo(ox + Math.cos(t) * (R + 4), oy - Math.sin(t) * (R + 4)); c.stroke(); }
+    c.restore();
+  }
+  for (const key of ['ion', 'el']) {
+    const a = G.ans[key], col = css(SPECIES[key].col), dash = aiming ? null : [6, 5];
+    if (typeof a === 'number') {
+      const t = a * Math.PI / 180, l = ARROW_LEN[key] * s;
+      arrow(c, ox, oy, ox + Math.cos(t) * l, oy - Math.sin(t) * l, aiming ? col : alpha(col, .8), H2 ? 5.5 : 3.5, H2 ? 18 : 13, dash);
+      if (H2 && aiming) tag(c, SPECIES_TAG[key], ox + Math.cos(t) * (l + 14) - (Math.cos(t) < -.3 ? 70 : 0), oy - Math.sin(t) * (l + 14), col);
+    } else if (a === 'none') {
+      c.save(); c.strokeStyle = col; c.lineWidth = H2 ? 4 : 2.5; if (dash) c.setLineDash(dash);
+      c.beginPath(); c.arc(ox, oy, key === 'ion' ? 17 : 11, 0, 7); c.stroke(); c.restore();
+    }
+  }
+  if (G.phase === 'predict' || G.phase === 'count') {
+    c.save(); c.fillStyle = css('--ink'); c.beginPath(); c.arc(ox, oy, H2 ? 6.5 : 4.5, 0, 7); c.fill(); c.restore();
+  } else {
+    c.save(); c.strokeStyle = css('--ink'); c.lineWidth = 1.2; c.beginPath(); c.arc(ox, oy, 4, 0, 7); c.stroke(); c.restore();
+  }
+  if (aiming && G.ans.ion === null && G.ans.el === null) {
+    c.save(); c.font = `500 ${H2 ? 15 : 12}px "IBM Plex Sans", system-ui, sans-serif`; c.fillStyle = css('--ink-2'); c.textAlign = 'center';
+    c.fillText('drag from the particle to aim', ox, oy + ARROW_LEN.ion * s + 26); c.restore();
+  }
+}
+function drawStage() {
+  if (!W || G.phase === 'splash' || G.phase === 'end') return;
+  drawFields(LEVELS[G.i]);
+  if (G.sims && (G.phase === 'run' || G.phase === 'reveal')) drawOrbits(G.phase === 'reveal' ? 1 : G.animT);
+  drawCalls();
+}
+
+/* ---------------- aiming ---------------- */
+const VAL = { ion: $('#valIon'), el: $('#valEl') };
+const other = k => k === 'ion' ? 'el' : 'ion';
+function setActive(key) {
+  G.active = key;
+  $$('.call').forEach(r => r.querySelector('.pick').setAttribute('aria-pressed', String(r.dataset.sp === key)));
+  drawStage();
+}
+function setAns(key, v) {
+  G.ans[key] = v;
+  VAL[key].textContent = v === null ? 'not set' : v === 'none' ? 'no drift' : GLYPH[v / 45];
+  $(`.call[data-sp="${key}"] .none`).setAttribute('aria-pressed', String(v === 'none'));
+  drawStage(); updateLock();
+}
+function advanceActive() { if (G.ans[G.active] !== null && G.ans[other(G.active)] === null) setActive(other(G.active)); }
+function aim(e) {
+  const r = cv.getBoundingClientRect(), [ox, oy] = toPx(0, 0);
+  const dx = e.clientX - r.left - ox, dy = -(e.clientY - r.top - oy);
+  if (Math.hypot(dx, dy) < 14) return;
+  setAns(G.active, (Math.round(Math.atan2(dy, dx) * 180 / Math.PI / 45) * 45 + 360) % 360);
+}
+cv.addEventListener('pointerdown', e => { if (G.phase !== 'predict') return; cv.setPointerCapture(e.pointerId); aim(e); });
+cv.addEventListener('pointermove', e => { if (G.phase === 'predict' && cv.hasPointerCapture(e.pointerId)) aim(e); });
+cv.addEventListener('pointerup', () => { if (G.phase === 'predict') advanceActive(); });
+cv.addEventListener('keydown', e => {
+  if (G.phase !== 'predict') return;
+  const cur = typeof G.ans[G.active] === 'number' ? G.ans[G.active] : null;
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { setAns(G.active, cur === null ? 90 : (cur + 45) % 360); e.preventDefault(); }
+  else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { setAns(G.active, cur === null ? 0 : (cur + 315) % 360); e.preventDefault(); }
+  else if (e.key === 'n') setAns(G.active, 'none');
+  else if (e.key === 'Enter' || e.key === ' ') { setActive(other(G.active)); e.preventDefault(); }
+});
+$$('.call').forEach(row => {
+  const key = row.dataset.sp;
+  row.querySelector('.pick').addEventListener('click', () => { if (G.phase === 'predict') setActive(key); });
+  row.querySelector('.none').addEventListener('click', () => {
+    if (G.phase !== 'predict') return;
+    setActive(key); setAns(key, G.ans[key] === 'none' ? null : 'none'); advanceActive();
+  });
+});
+
+/* ---------------- game flow ---------------- */
+let clockTimer = 0;
+function renderPips() {
+  $('#pips').innerHTML = LEVELS.map((L, i) => {
+    const r = G.results[i], cls = i === G.i && G.phase !== 'end' && G.phase !== 'splash' ? 'pip cur' : 'pip';
+    const sep = L.tier && i > 0 && LEVELS[i - 1].tier !== L.tier ? '<span class="tsep"></span>' : '';
+    const fill = r ? `<i style="background:${gradeCol(r.ion.pts)}"></i><i style="background:${gradeCol(r.el.pts)}"></i>` : '';
+    return `${sep}<span class="${cls}" title="Level ${i + 1}">${fill}</span>`;
+  }).join('');
+  $('#score').textContent = G.total; $('#maxScore').textContent = maxTotal();
+}
+function gradeCol(p) { return p >= 100 ? css('--good') : p >= NOTCH ? css('--dcurv') : '#2a3149'; }
+function gradeSq(p) { return p >= 100 ? '🟩' : p >= NOTCH ? '🟧' : '⬛'; }
+
+function startRun(mode) {
+  G.mode = mode; LEVELS = buildRun(mode); G.results = []; G.total = 0; startLevel(0);
+}
+function startLevel(i) {
+  G.i = i; G.phase = 'predict'; G.ans = { ion: null, el: null }; G.sims = null; G.tLeft = tLimit();
+  const L = LEVELS[i];
+  $('#splash').hidden = true; $('#end').hidden = true; $('#board').hidden = false; $('#reveal').hidden = true;
+  $('#lvlTag').textContent = `${G.mode === 'hard' ? 'Hard' : 'Easy'} · Level ${i + 1} of ${LEVELS.length}`;
+  $('#lvlName').textContent = txt(L.name, L);
+  $('#nextBtn').hidden = true; $('#replayBtn').hidden = true; $('#lockBtn').hidden = false;
+  $$('.call button').forEach(b => b.disabled = false);
+  $('#stage').classList.add('aiming');
+  renderGiven(L); renderPips(); sizeStage();
+  setAns('ion', null); setAns('el', null); setActive('ion');
+  clearInterval(clockTimer);
+  G.extra = false; G.tFull = tLimit(); G.deadline = performance.now() + tLimit() * 1000;
+  tickClock();
+  $('#moreBtn').hidden = true;
+  clockTimer = setInterval(() => {
+    G.tLeft = Math.max(0, (G.deadline - performance.now()) / 1000); tickClock();
+    $('#moreBtn').hidden = G.extra || G.tLeft > EXTRA_AT || G.tLeft <= 0;
+    if (G.tLeft <= 0) lockIn(true);
+  }, 100);
+  $('#board').scrollIntoView({ block: 'nearest', behavior: reduceMotion ? 'auto' : 'smooth' });
+}
+function tickClock() {
+  const f = Math.min(1, G.tLeft / (G.tFull || tLimit())), arc = $('#clockArc');
+  arc.style.strokeDashoffset = String(106.8 * (1 - f));
+  arc.style.stroke = G.tLeft > 10 ? css('--ink') : G.tLeft > 5 ? css('--mid') : css('--bad');
+  $('#clockN').textContent = Math.ceil(G.tLeft);
+}
+function fmtVec(v) {
+  const f = x => (Math.abs(x) < 5e-4 ? 0 : x).toFixed(3);
+  return `(${f(v[0])}, ${f(v[1])})`;
+}
+// "v_g > v_E = v_R": which drift is fastest, so mixed levels never hinge on a guess about sizes
+const VSUB = { E: '<i>E</i>', g: '<i>g</i>', grad: '∇<i>B</i>', curv: '<i>R</i>' };
+function speedOrder(L, key) {
+  const ps = Object.entries(chen(L, key).parts).map(([k, v]) => [k, mag(v)]).filter(p => p[1] > ZERO).sort((a, b) => b[1] - a[1]);
+  if (ps.length < 2) return '';
+  return ps.map(([k, m], i) => (i ? (ps[i - 1][1] - m < 0.01 * m ? ' = ' : ' > ') : '') + `<i class="v">v</i><sub>${VSUB[k]}</sub>`).join('');
+}
+function renderGiven(L) {
+  if (L.src) {
+    $('#givenList').innerHTML = L.given.map(g => `<li><span class="sw" style="background:var(--ink-3)"></span><span>${g}</span></li>`).join('');
+    $('#givenNote').innerHTML = L.note + ' Work out <b class="v">E</b> and <b class="v">B</b> at the particle first.';
+    return;
+  }
+  const items = [], sw = c => `<span class="sw" style="background:var(${c})"></span>`;
+  items.push(`<li>${sw('--dB')}<span><b class="v">B</b> ${io(L.Bz)} the screen${mag(L.G) > ZERO ? ' (at the start point)' : ', uniform'}</span></li>`);
+  if (mag(L.E) > ZERO) items.push(`<li>${sw('--dE')}<span><b class="v">E</b> along ${dw(L.E)}, uniform</span></li>`);
+  if (mag(L.g) > ZERO) items.push(`<li>${sw('--dg')}<span><b class="v">g</b> along ${dw(L.g)}</span></li>`);
+  if (mag(L.G) > ZERO) items.push(`<li>${sw('--dgrad')}<span>|<b class="v">B</b>| grows along ${dw(L.G)}${L.kap ? ', because the field is a curved vacuum field' : ''}</span></li>`);
+  if (L.kap > 0) items.push(`<li>${sw('--dcurv')}<span>Field lines curve, with <b class="v">R</b><sub>c</sub> along ${dw(L.Rc)} at the start. The center of curvature is ${1 / L.kap} units the other way. Both species stream along <b class="v">B</b>.</span></li>`);
+  for (const key of ['ion', 'el']) { const o = speedOrder(L, key); if (o) items.push(`<li>${sw(SPECIES[key].col)}<span>${SPECIES[key].name} drift speeds: ${o}</span></li>`); }
+  $('#givenList').innerHTML = items.join('');
+  $('#givenNote').innerHTML = mag(L.E) + mag(L.g) + mag(L.G) + L.kap < ZERO
+    ? 'Nothing else. Both particles gyrate.'
+    : 'Ion: charge +<i class="v">e</i>, mass <i class="v">m</i>. Electron: charge −<i class="v">e</i>, mass <i class="v">m</i>/4.';
+}
+function updateLock() {
+  const ok = G.ans.ion !== null && G.ans.el !== null;
+  $('#lockBtn').disabled = !ok || G.phase !== 'predict';
+  if (G.phase === 'predict' && !G.extra) $('#lockHint').textContent = ok ? '' : `Set the ${G.ans.ion === null ? 'ion' : 'electron'}.`;
+}
+
+function scoreOne(ans, truth) {
+  // arrows come in 45° steps: the nearest step earns full points, the next one over earns NOTCH
+  const none = mag(truth) < ZERO;
+  if (ans === null) return { pts: 0, err: null };
+  if (none) return { pts: ans === 'none' ? PTS_PER : 0, err: null };
+  if (ans === 'none') return { pts: 0, err: null };
+  const ta = Math.atan2(truth[1], truth[0]) * 180 / Math.PI;
+  const e = Math.abs(((ans - ta) % 360 + 540) % 360 - 180);
+  return { pts: e <= 23 ? PTS_PER : e <= 68 ? NOTCH : 0, err: e };
+}
+
+function lockIn(timeout) {
+  if (G.phase !== 'predict') return;
+  clearInterval(clockTimer);
+  G.phase = 'count';
+  $$('.call button').forEach(b => b.disabled = true);
+  $('#stage').classList.remove('aiming');
+  $('#lockBtn').disabled = true; $('#moreBtn').hidden = true;
+  $('#lockHint').textContent = timeout ? 'Time.' : '';
+  const L = LEVELS[G.i];
+  const r = { tLeft: G.tLeft };
+  for (const key of ['ion', 'el']) {
+    const truth = chen(L, key).tot, s = scoreOne(G.ans[key], truth);
+    r[key] = { ans: G.ans[key], truth, ...s };
+  }
+  // asking for more time forfeits the speed bonus and costs EXTRA_PENALTY (never below zero for the level)
+  r.extra = G.extra;
+  r.bonus = !G.extra && r.ion.pts >= PTS_PER && r.el.pts >= PTS_PER ? Math.round(BONUS * G.tLeft / tLimit()) : 0;
+  r.penalty = G.extra ? Math.min(EXTRA_PENALTY, r.ion.pts + r.el.pts) : 0;
+  r.total = r.ion.pts + r.el.pts + r.bonus - r.penalty;
+  G.results[G.i] = r;
+  // integrate both orbits now so the run starts cleanly; curved fields run longer so the bend shows
+  const vmax = Math.max(mag(r.ion.truth), mag(r.el.truth)), travel = L.curvFun ? 5.5 : 4.6;
+  const T = vmax < ZERO ? 3 * 2 * Math.PI : Math.min(7 * 2 * Math.PI, Math.max(3 * 2 * Math.PI, travel / vmax));
+  G.sims = { ion: simulate(L, 'ion', T), el: simulate(L, 'el', T), T };
+  drawStage();
+  const cnt = $('#count'); let n = 3;
+  const step = () => {
+    if (n === 0) { cnt.classList.remove('pop'); runOrbits(); return; }
+    cnt.textContent = n; cnt.classList.remove('pop'); void cnt.offsetWidth; cnt.classList.add('pop');
+    n--; setTimeout(step, reduceMotion ? 350 : 800);
+  };
+  step();
+}
+function runOrbits(then) {
+  G.phase = 'run'; G.animT = 0;
+  const dur = reduceMotion ? 600 : 6000, t0 = performance.now();
+  cancelAnimationFrame(G.anim);
+  const frame = now => {
+    G.animT = Math.min(1, (now - t0) / dur);
+    drawStage();
+    if (G.animT < 1) G.anim = requestAnimationFrame(frame); else (then || showReveal)();
+  };
+  G.anim = requestAnimationFrame(frame);
+}
+function showReveal() {
+  G.phase = 'reveal';
+  const L = LEVELS[G.i], r = G.results[G.i];
+  G.total = G.results.reduce((s, x) => s + (x ? x.total : 0), 0);
+  drawStage(); renderPips();
+  for (const key of ['ion', 'el']) {
+    const x = r[key];
+    VAL[key].innerHTML = `${VAL[key].textContent} <b style="color:${x.pts ? gradeCol(x.pts) : css('--bad')}">${x.pts}</b>`;
+  }
+  const both = r.ion.pts + r.el.pts;
+  $('#revTitle').textContent = both === 200 ? 'Both calls right' : both >= 140 ? 'Close' : both >= 100 ? 'Half right' : 'Not this time';
+  $('#revPts').textContent = `+${r.total}` + (r.bonus ? ` (${r.bonus} speed)` : '') + (r.extra ? ` (−${EXTRA_PENALTY} extra time)` : '');
+  $('#revWhy').innerHTML = txt(L.why, L);
+  $('#revEq').innerHTML = L.eq;
+  const ci = chen(L, 'ion'), ce = chen(L, 'el');
+  const names = { E: ['E × B', '--dE'], g: ['gravity', '--dg'], grad: ['grad-B', '--dgrad'], curv: ['curvature', '--dcurv'] };
+  let rows = '<span class="h">term</span><span class="h">ion</span><span class="h">electron</span>';
+  for (const k of Object.keys(names)) {
+    if (mag(ci.parts[k]) < ZERO && mag(ce.parts[k]) < ZERO) continue;
+    rows += `<span class="k"><i style="background:var(${names[k][1]})"></i>${names[k][0]}</span><span class="n">${fmtVec(ci.parts[k])}</span><span class="n">${fmtVec(ce.parts[k])}</span>`;
+  }
+  rows += `<span class="k tot">Predicted total</span><span class="n tot">${fmtVec(ci.tot)}</span><span class="n tot">${fmtVec(ce.tot)}</span>`;
+  rows += `<span class="k" style="color:var(--ink-3)">measured</span><span class="n" style="color:var(--ink-3)">${fmtVec(G.sims.ion.meas)}</span><span class="n" style="color:var(--ink-3)">${fmtVec(G.sims.el.meas)}</span>`;
+  $('#revParts').innerHTML = rows;
+  $('#reveal').hidden = false;
+  $('#lockBtn').hidden = true; $('#lockHint').textContent = 'Thick line: the guiding center. Dashed: your call.';
+  $('#nextBtn').hidden = false; $('#replayBtn').hidden = false;
+  $('#nextBtn').textContent = G.i + 1 < LEVELS.length ? 'Next level' : 'See final score';
+  $('#nextBtn').focus({ preventScroll: true });
+}
+
+/* ---------------- end and sharing ---------------- */
+const RANKS = [[0.9, 'Guiding-center oracle'], [0.75, 'Drift whisperer'], [0.55, 'Solid right-hand rule'], [0.35, 'Getting the hang of it'], [0, 'Gyrating in place']];
+function shareText() {
+  const sq = r => r ? gradeSq(r.ion.pts) + gradeSq(r.el.pts) : '';
+  let rows;
+  if (G.mode === 'easy') rows = [1, 2, 3].map(t => `T${t} ` + LEVELS.map((L, i) => L.tier === t ? sq(G.results[i]) : null).filter(x => x !== null).join(' '));
+  else { rows = []; for (let i = 0; i < LEVELS.length; i += 5) rows.push(LEVELS.slice(i, i + 5).map((L, j) => sq(G.results[i + j])).join(' ')); }
+  return `Driftdle ${G.mode === 'hard' ? 'Hard' : 'Easy'} ${G.total}/${maxTotal()}\n${rows.join('\n')}`;
+}
+function showEnd() {
+  G.phase = 'end'; clearInterval(clockTimer);
+  $('#board').hidden = true; $('#end').hidden = false;
+  $('#endMode').textContent = `Final score · ${G.mode === 'hard' ? 'Hard' : 'Easy'}`;
+  $('#endScore').innerHTML = `${G.total}<small> / ${maxTotal()}</small>`;
+  const f = G.total / maxTotal(); $('#endRank').textContent = RANKS.find(([t]) => f >= t)[1];
+  $('#endGrid').textContent = shareText();
+  $('#copyMsg').textContent = ''; $('#copyFallback').hidden = true;
+  renderPips(); watchBoard(); postScore();
+  $('#end').scrollIntoView({ block: 'nearest', behavior: reduceMotion ? 'auto' : 'smooth' });
+}
+$('#copyBtn').addEventListener('click', () => {
+  const txt = shareText(), fb = $('#copyFallback');
+  const fallback = () => { fb.hidden = false; fb.value = txt; fb.focus(); fb.select(); $('#copyMsg').textContent = 'Copy the text below.'; };
+  try {
+    navigator.clipboard.writeText(txt).then(() => { $('#copyMsg').textContent = 'Copied. Paste it in the class chat.'; }, fallback);
+  } catch (e) { fallback(); }
+});
+
+/* class leaderboard: one collection per mode, one doc per person (their best run), everyone signed in reads all */
+let lb = null, lbUnsub = null;
+async function initBoard() {
+  if (!window.claude || !window.claude.use) return;
+  try {
+    const [db, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]);
+    if (!db || !user) return;
+    lb = { db, user, me: await user.id() };
+    if (G.phase === 'end') watchBoard();
+  } catch (e) {}
+}
+function watchBoard() {
+  const msg = $('#lbMsg');
+  $('#lbTitle').textContent = `Class leaderboard · ${G.mode === 'hard' ? 'Hard' : 'Easy'}`;
+  if (!lb) { msg.textContent = window.claude && window.claude.use ? 'Sign in to claude.ai to see the class board.' : 'The class board works on the published page.'; return; }
+  if (lbUnsub) { try { lbUnsub(); } catch (e) {} }
+  msg.textContent = 'Connecting to the class board…'; $('#lbList').innerHTML = '';
+  const mode = G.mode;
+  lbUnsub = lb.db.collection(mode).orderBy('score', 'desc').limit(15).onSnapshot(snap => renderBoard(snap.docs, mode), () => { msg.textContent = 'The class board is unavailable right now.'; });
+}
+async function renderBoard(docs, mode) {
+  const msg = $('#lbMsg'), list = $('#lbList');
+  if (mode !== G.mode) return;
+  if (!docs.length) { msg.textContent = 'No scores yet.'; list.innerHTML = ''; return; }
+  msg.textContent = 'Best run per person.';
+  let profiles = {};
+  try { profiles = await lb.user.profiles(docs.map(d => d.id)); } catch (e) {}
+  list.innerHTML = '';
+  docs.forEach((d, i) => {
+    const v = d.data() || {}, li = document.createElement('li');
+    if (d.id === lb.me) li.className = 'me';
+    const p = document.createElement('span'); p.className = 'p'; p.textContent = i + 1;
+    const w = document.createElement('span'); w.className = 'who'; w.textContent = (profiles[d.id] && profiles[d.id].name || 'Someone') + (d.id === lb.me ? ' (you)' : '');
+    const s = document.createElement('span'); s.className = 's'; s.textContent = Number(v.score) || 0;
+    li.append(p, w, s); list.append(li);
+  });
+}
+async function postScore() {
+  if (!lb) return;
+  try {
+    const ref = lb.db.collection(G.mode).doc(lb.me), cur = await ref.get();
+    const best = cur.exists ? Number((cur.data() || {}).score) || 0 : -1;
+    if (G.total > best) {
+      await ref.set({ score: G.total, max: maxTotal(), grid: shareText().split('\n').slice(1).join('\n'), at: Date.now() });
+      $('#copyMsg').textContent = best < 0 ? 'Posted to the class board.' : 'New personal best posted to the class board.';
+    } else $('#copyMsg').textContent = `Your best on the class board is still ${best}.`;
+  } catch (e) { $('#copyMsg').textContent = 'Could not post to the class board. Your viewing access may not allow it.'; }
+}
+
+/* ---------------- wiring ---------------- */
+// high-visibility mode: remembered per browser; starts on if the system asks for more contrast
+function setVis(on) {
+  document.documentElement.dataset.vis = on ? 'high' : '';
+  $('#visBtn').setAttribute('aria-pressed', String(on));
+  try { localStorage.setItem('driftdle-vis', on ? 'high' : 'normal'); } catch (e) {}
+  drawStage();
+}
+{
+  let saved = null; try { saved = localStorage.getItem('driftdle-vis'); } catch (e) {}
+  setVis(saved ? saved === 'high' : matchMedia('(prefers-contrast: more)').matches);
+}
+$('#visBtn').addEventListener('click', () => setVis(!hv()));
+$('#easyBtn').addEventListener('click', () => startRun('easy'));
+$('#hardBtn').addEventListener('click', () => startRun('hard'));
+$('#againBtn').addEventListener('click', () => {
+  G.phase = 'splash'; $('#end').hidden = true; $('#splash').hidden = false; renderPips();
+  $('#splash').scrollIntoView({ block: 'nearest', behavior: reduceMotion ? 'auto' : 'smooth' });
+});
+$('#lockBtn').addEventListener('click', () => lockIn(false));
+$('#moreBtn').addEventListener('click', () => {
+  if (G.phase !== 'predict' || G.extra) return;
+  G.extra = true; G.deadline += EXTRA_T * 1000; G.tFull = G.tLeft + EXTRA_T;
+  $('#moreBtn').hidden = true; $('#lockHint').textContent = `One more minute: −${EXTRA_PENALTY} points, no speed bonus.`;
+  tickClock();
+});
+$('#nextBtn').addEventListener('click', () => G.i + 1 < LEVELS.length ? startLevel(G.i + 1) : showEnd());
+$('#replayBtn').addEventListener('click', () => { if (G.phase === 'reveal') runOrbits(() => { G.phase = 'reveal'; drawStage(); }); });
+new ResizeObserver(() => sizeStage()).observe($('#stage'));
+document.fonts && document.fonts.ready.then(() => { sizeStage(); });
+renderPips();
+initBoard();
+
+window.__game = { G, get LEVELS() { return LEVELS; }, U, SOURCES, HARD_POOL, buildRun, uniformLevel, finalize, chen, simulate, startRun, startLevel, setAns, setActive, lockIn, showEnd, shareText, scoreOne };
+})();
+</script>
+
+</body>
+</html>
