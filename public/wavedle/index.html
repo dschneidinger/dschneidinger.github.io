@@ -1,0 +1,1457 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Wavedle</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=STIX+Two+Text:ital,wght@0,400;0,600;1,400;1,600&display=swap">
+<style>
+/* Layout: Driftdle's console (stage left, the two calls right), retuned as a wave bench: the stage is a strip of
+   fluid elements, a dispersion plot or a setup diagram. Dark-first like Driftdle, with a cool paper light theme.
+   Species keep Driftdle's hues: ions magenta, electrons cyan. k is amber, E1 is green, B0 is slate. */
+:root{
+  color-scheme:dark;
+  --bg:#070a14; --bg-2:#0d1222; --panel:#111829; --panel-2:#182039; --line:rgba(160,178,220,.14); --line-2:rgba(160,178,220,.28);
+  --ink:#e0e6f4; --ink-2:#a8b1c8; --ink-3:#6c7693; --on-ink:#0a0d18;
+  --ion:#f0628f; --elec:#45b8ec; --k:#e8ad3a; --E:#5bc28a; --B:#8f97b4; --plot:#c9a6ff;
+  --good:#5bb878; --near:#f08447; --bad:#e2595d; --miss:#2a3149; --focus:#8fb0ff;
+  --stage-a:#121a30; --stage-b:#05080f;
+  --font-display:"STIX Two Text","STIX Two Math","Cambria Math",Georgia,serif;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  --r:14px;
+}
+@media (prefers-color-scheme: light){ :root:not([data-theme="dark"]){
+  color-scheme:light;
+  --bg:#eef1f7; --bg-2:#e4e8f2; --panel:#fbfcfe; --panel-2:#e9edf6; --line:rgba(30,42,80,.13); --line-2:rgba(30,42,80,.26);
+  --ink:#141a2b; --ink-2:#424b63; --ink-3:#6b7390; --on-ink:#fbfcfe;
+  --ion:#c8285f; --elec:#0b7fb5; --k:#a86a00; --E:#1f8a52; --B:#6a7290; --plot:#7a4fd0;
+  --good:#2f8f4e; --near:#c8591a; --bad:#c3363b; --miss:#c9cfdd; --focus:#3757c8;
+  --stage-a:#ffffff; --stage-b:#e6eaf3;
+}}
+:root[data-theme="light"]{
+  color-scheme:light;
+  --bg:#eef1f7; --bg-2:#e4e8f2; --panel:#fbfcfe; --panel-2:#e9edf6; --line:rgba(30,42,80,.13); --line-2:rgba(30,42,80,.26);
+  --ink:#141a2b; --ink-2:#424b63; --ink-3:#6b7390; --on-ink:#fbfcfe;
+  --ion:#c8285f; --elec:#0b7fb5; --k:#a86a00; --E:#1f8a52; --B:#6a7290; --plot:#7a4fd0;
+  --good:#2f8f4e; --near:#c8591a; --bad:#c3363b; --miss:#c9cfdd; --focus:#3757c8;
+  --stage-a:#ffffff; --stage-b:#e6eaf3;
+}
+/* high visibility: stronger contrast, bigger text, thicker strokes (the canvas reads the same switch) */
+:root[data-vis="high"]{
+  --line:rgba(225,232,250,.5); --line-2:rgba(225,232,250,.8); --ink:#fff; --ink-2:#eef1f8; --ink-3:#cdd3e2;
+  --bg:#000; --bg-2:#05070e; --panel:#0c1122; --panel-2:#1b2442; --stage-a:#000; --stage-b:#000; --on-ink:#000;
+  --ion:#ff86b6; --elec:#62ccff; --k:#ffdb4d; --E:#45eaa8; --B:#e4e8f2; --plot:#dca2ff;
+  --good:#45eaa8; --near:#ffa05a; --bad:#ff6f73; --miss:#3a4366; --focus:#ffdb4d; color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{background:var(--bg);color:var(--ink)}
+body{font-family:var(--font-body);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:18px 28px}
+:root[data-vis="high"] body{font-size:16px}
+.wrap{max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+i.v,.m i{font-family:var(--font-display);font-style:italic}
+.m{font-family:var(--font-display)}
+sub,sup{font-size:.72em;line-height:0}
+
+/* header */
+.top{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.top h1{font-family:var(--font-display);font-style:italic;font-weight:600;font-size:28px;margin:0;letter-spacing:-.01em;display:flex;align-items:baseline;gap:10px}
+.top h1 small{font-family:var(--font-mono);font-style:normal;font-weight:500;font-size:12px;color:var(--ink-3);letter-spacing:.04em}
+.pips{display:flex;gap:4px;margin-left:auto;align-items:center;flex-wrap:wrap}
+.pip{width:20px;height:7px;border-radius:3px;background:var(--panel-2);display:flex;overflow:hidden}
+.pip i{flex:1}
+.pip.cur{outline:1px solid var(--ink-2);outline-offset:1px}
+.pip-sep{width:6px}
+.scorebox{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:13px;color:var(--ink-3);white-space:nowrap}
+.scorebox b{color:var(--ink);font-weight:600}
+.visbtn{border:1px solid var(--line-2);background:var(--panel-2);border-radius:999px;padding:6px 12px;font-size:12.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:7px;white-space:nowrap}
+.visbtn::before{content:"";width:12px;height:12px;border-radius:50%;border:2px solid currentColor;background:linear-gradient(90deg,currentColor 50%,transparent 50%)}
+.visbtn[aria-pressed="true"]{background:var(--ink);color:var(--on-ink);border-color:var(--ink)}
+
+/* board */
+.board{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:14px;align-items:start}
+.stagecol{display:flex;flex-direction:column;gap:10px;min-width:0}
+.stage{position:relative;background:radial-gradient(120% 90% at 50% 40%,var(--stage-a),var(--stage-b) 75%);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;aspect-ratio:4/3;max-width:100%}
+:root[data-vis="high"] .stage{border-width:2px}
+.stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.stage .lvl{position:absolute;left:12px;top:12px;right:12px;display:flex;gap:10px;align-items:flex-start;pointer-events:none;z-index:2}
+.lvl .tag{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.lvl h2{font-family:var(--font-display);font-weight:600;font-size:22px;margin:0;line-height:1.15;text-wrap:balance;text-shadow:0 0 6px var(--bg)}
+.clockring{margin-left:auto;position:relative;width:54px;height:54px;flex:none}
+.clockring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.clockring .n{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--font-mono);font-weight:600;font-size:16px;font-variant-numeric:tabular-nums}
+.overlay{position:absolute;inset:0;display:grid;place-items:center;padding:78px 22px 22px;z-index:1}
+.overlay .eqbig{font-family:var(--font-display);font-size:clamp(14px,3.6vw,30px);text-align:center;line-height:1.6;max-width:100%;display:flex;flex-direction:column;align-items:center;gap:.35em}
+.overlay .eqline{white-space:nowrap}
+.overlay .eqlab{font-family:var(--font-mono);font-size:max(11px,.42em);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+/* a subscript with an exponent stacked over it, like Ω_e²; and a radical with a bar over its argument */
+.ss{display:inline-flex;flex-direction:column;vertical-align:.62em;font-size:.66em;line-height:1;margin-left:.04em;text-align:left}
+.ss sup,.ss sub{display:block;font-size:1em;line-height:.95;vertical-align:0;position:static}
+.rad{border-top:.06em solid currentColor;padding:.08em .12em 0;margin-left:.02em}
+.overlay .story{font-family:var(--font-display);font-size:clamp(17px,2.6vw,23px);line-height:1.45;max-width:34ch;text-wrap:pretty}
+.overlay .story::before{content:"“";display:block;font-size:2.4em;line-height:.6;color:var(--k);margin-bottom:6px}
+.stagecap{color:var(--ink-3);font-size:13.5px;margin:0;display:flex;gap:14px;flex-wrap:wrap}
+.stagecap span{display:inline-flex;align-items:center;gap:6px}
+.stagecap i.sw{width:9px;height:9px;border-radius:50%;display:inline-block}
+.motion{display:flex;flex-direction:column;gap:6px}
+.mstrip{position:relative;aspect-ratio:2/1;max-width:100%;background:radial-gradient(120% 90% at 50% 40%,var(--stage-a),var(--stage-b) 75%);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.mstrip canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+@media (max-width:520px){.mstrip{aspect-ratio:4/3}}
+
+.frac{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;font-size:.86em;line-height:1.15;margin:0 2px}
+.frac>span:first-child{border-bottom:1px solid currentColor;padding:0 3px}
+.frac>span:last-child{padding:0 3px}
+
+.side{display:flex;flex-direction:column;gap:12px;min-width:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+:root[data-vis="high"] .card,:root[data-vis="high"] .screen{border-width:2px}
+.card h3{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin:0 0 8px;font-weight:500}
+.given ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:5px}
+.given ul.setup{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 12px;align-items:baseline}
+.given ul.setup li{display:contents}
+.given li .k{display:inline-flex;align-items:center;gap:7px;font-family:var(--font-mono);font-size:14px;color:var(--ink-3);white-space:nowrap}
+.given li .sw{width:10px;height:10px;border-radius:50%;flex:none}
+.given li .val{font-weight:500}
+.given p{margin:8px 0 0;color:var(--ink-3);font-size:12.5px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:12.5px;border:1px solid var(--line-2);border-radius:999px;padding:3px 10px;background:var(--bg-2);white-space:nowrap}
+.chip b{font-weight:600}
+
+/* calls */
+.calls{display:flex;flex-direction:column;gap:14px}
+.call{display:flex;flex-direction:column;gap:7px}
+.call .q{display:flex;gap:8px;align-items:baseline}
+.call .q .n{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);white-space:nowrap}
+.call .q p{margin:0;font-weight:500}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.opt{display:flex;align-items:center;gap:8px;text-align:left;padding:8px 11px;border-radius:10px;border:1px solid var(--line);background:var(--bg-2);cursor:pointer;min-width:0;line-height:1.3}
+.opt .dot{width:9px;height:9px;border-radius:50%;border:1.5px solid var(--ink-3);flex:none}
+.opt[aria-pressed="true"]{border-color:var(--ink-2);box-shadow:inset 3px 0 0 var(--ink)}
+.opt[aria-pressed="true"] .dot{background:var(--ink);border-color:var(--ink)}
+.opt:disabled{cursor:default}
+.opt.ok{border-color:var(--good);box-shadow:inset 3px 0 0 var(--good)}
+.opt.ok .dot{background:var(--good);border-color:var(--good)}
+.opt.nearpick{border-color:var(--near);box-shadow:inset 3px 0 0 var(--near)}
+.opt.wrong{border-color:var(--bad);box-shadow:inset 3px 0 0 var(--bad)}
+.opt.dim{opacity:.55}
+.opts.wide{grid-template-columns:1fr}
+/* build toggles */
+.tg{display:grid;grid-template-columns:118px minmax(0,1fr);gap:6px 10px;align-items:center}
+.tg .lab{font-size:12.5px;color:var(--ink-2)}
+.seg{display:flex;flex-wrap:wrap;gap:4px}
+.seg button{border:1px solid var(--line);background:var(--bg-2);border-radius:8px;padding:6px 10px;font-size:12.5px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--on-ink);border-color:var(--ink);font-weight:600}
+.seg button:disabled{cursor:default}
+.viewsw{margin-top:-2px}
+.call.bonus{border-top:1px dashed var(--line);padding-top:12px;margin-top:4px}
+.call.bonus .q .n{color:var(--good)}
+.tg .lab.miss{color:var(--bad)}
+
+.actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px}
+.btn{border:1px solid var(--line-2);background:var(--panel-2);border-radius:10px;padding:9px 14px;font-weight:600;cursor:pointer}
+.btn.primary{background:var(--ink);color:var(--on-ink);border-color:var(--ink)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.more{border-color:var(--k);color:var(--k);background:transparent;animation:nudge 1.2s ease-in-out infinite}
+.btn.more small{font-family:var(--font-mono);font-weight:500;font-size:11px;margin-left:4px;opacity:.85}
+@keyframes nudge{0%,100%{box-shadow:0 0 0 0 transparent}50%{box-shadow:0 0 0 5px color-mix(in srgb,var(--k) 22%,transparent)}}
+.hint{color:var(--ink-3);font-size:12px}
+
+/* reveal */
+.reveal{display:flex;flex-direction:column;gap:10px}
+.reveal .head{display:flex;align-items:baseline;gap:10px}
+.reveal .head h4{margin:0;font-family:var(--font-display);font-size:20px;font-weight:600}
+.reveal .head .pts{margin-left:auto;font-family:var(--font-mono);font-weight:600;font-size:14px;white-space:nowrap}
+.reveal p{margin:0;color:var(--ink-2)}
+.modecard{border-top:1px solid var(--line);padding-top:10px;display:flex;flex-direction:column;gap:6px}
+.modecard .nm{font-weight:600}
+.modecard .eq{font-family:var(--font-display);font-size:16px;overflow-x:auto;white-space:nowrap;padding:2px 0}
+.modecard ul{margin:0;padding-left:18px;color:var(--ink-2);font-size:13px}
+.recipe{font-size:12.5px;color:var(--ink-3)}
+.recipe b{color:var(--ink-2);font-weight:500}
+
+/* splash and end */
+.screen{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:clamp(18px,4vw,34px);display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:28px}
+.screen h2{font-family:var(--font-display);font-weight:600;font-size:clamp(28px,4.4vw,42px);line-height:1.05;margin:0 0 12px;text-wrap:balance}
+.screen h2 em{color:var(--k)}
+.screen p{color:var(--ink-2);max-width:60ch;margin:0 0 10px}
+.hero{position:relative;height:84px;margin:0 0 14px;border-radius:10px;overflow:hidden;border:1px solid var(--line);background:var(--bg-2)}
+.hero canvas{position:absolute;inset:0;width:100%;height:100%}
+.rules{margin:4px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+.rules li{display:grid;grid-template-columns:20px 1fr;gap:6px;color:var(--ink-2)}
+.rules li b{font-family:var(--font-mono);color:var(--ink-3);font-weight:500}
+.modes{display:flex;flex-direction:column;gap:10px}
+.mode{display:block;width:100%;text-align:left;border:1px solid var(--line-2);border-radius:12px;padding:14px 16px;background:var(--bg-2);cursor:pointer}
+.mode:hover{border-color:var(--ink-2)}
+.mode h4{margin:0 0 4px;font-size:17px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.mode h4 small{font-family:var(--font-mono);font-weight:500;font-size:11.5px;color:var(--ink-3)}
+.mode p{margin:0;font-size:13px;color:var(--ink-2)}
+.mode .done{display:block;margin-top:6px;font-family:var(--font-mono);font-size:12px;color:var(--good)}
+.big{font-family:var(--font-mono);font-weight:600;font-size:clamp(40px,8vw,68px);line-height:1;font-variant-numeric:tabular-nums}
+.big small{font-size:.35em;color:var(--ink-3);font-weight:500}
+.rank{font-family:var(--font-display);font-style:italic;font-size:22px;margin:6px 0 4px}
+.streak{font-family:var(--font-mono);font-size:12.5px;color:var(--ink-3);margin:0 0 12px}
+.grid{font-family:var(--font-mono);background:var(--bg-2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;white-space:pre;overflow-x:auto;font-size:13px;line-height:1.5;margin:0 0 10px}
+.lb{display:flex;flex-direction:column;gap:6px;min-width:0}
+.lb ol{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px}
+.lb li{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:8px;align-items:center;padding:6px 8px;border-radius:8px;background:var(--bg-2);border:1px solid var(--line);font-variant-numeric:tabular-nums}
+.lb li.me{border-color:var(--ink-2)}
+.lb li .who{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb li .s{font-family:var(--font-mono);font-weight:600}
+.lb li .p{font-family:var(--font-mono);color:var(--ink-3)}
+.label{font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.08em;font-size:10.5px;color:var(--ink-3);margin:0 0 4px;font-weight:500}
+.foot{color:var(--ink-3);font-size:12px;max-width:90ch;margin:0}
+
+@media (max-width:900px){.board,.screen{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:520px){
+  .opts{grid-template-columns:1fr}
+  .tg{grid-template-columns:minmax(0,1fr)} .tg .lab{margin-top:4px}
+  .lvl h2{font-size:18px}
+  .stage{aspect-ratio:1/1}
+  .top h1{font-size:24px}
+}
+@media (prefers-reduced-motion:reduce){.btn.more{animation:none}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <h1>Wavedle <small id="dayTag"></small></h1>
+    <div class="pips" id="pips" aria-label="Level progress"></div>
+    <div class="scorebox" aria-live="polite">Score <b id="score">0</b> / <span id="maxScore">0</span></div>
+    <button class="visbtn" id="visBtn" aria-pressed="false" title="Brighter colors, thicker lines, larger text">High visibility</button>
+  </header>
+
+  <!-- splash -->
+  <section class="screen" id="splash">
+    <div>
+      <div class="hero" aria-hidden="true"><canvas id="heroCv"></canvas></div>
+      <h2>Set the knobs on a plasma. <em>Which wave lives there?</em></h2>
+      <p>Every wave in Chen’s chapter 4 comes from a few choices: is there a B₀, does <i class="v">k</i> run along it or across it, is the wave electrostatic or electromagnetic, and can the ions keep up? Today’s puzzle is the same for the whole class.</p>
+      <ul class="rules">
+        <li><b>1</b><span>Easy levels ask one question: which wave is this? Hard levels add a second question about why, or name a wave and you build it from the toggles.</span></li>
+        <li><b>2</b><span>A right answer earns 100. A near miss, such as the O mode when the answer is the light wave, earns 40. Name a wave with a resonance right (R wave, X mode, magnetosonic or Alfvén) and a bonus question about that resonance is worth 50 more. Get every question on a level right and finish early for up to 50 more.</span></li>
+        <li><b>3</b><span>With 10 seconds left you can buy one more minute for 50 points. Your first run each day goes on the class board; replays are practice.</span></li>
+      </ul>
+    </div>
+    <div class="modes">
+      <button class="mode" id="easyBtn"><h4>Easy <small>12 levels · three tiers · 60–90 s</small></h4><p>Name the wave from its setup, then from its dispersion relation, cutoffs, plot or motion. An animation of each wave plays as a hint.</p><span class="done" id="easyDone" hidden></span></button>
+      <button class="mode" id="hardBtn"><h4>Hard <small>10 levels · shuffled · 90–105 s</small></h4><p>Half the levels name a wave and you set the toggles to make it. The rest are Easy’s setups, equations and stories with a second question, and no animation hint.</p><span class="done" id="hardDone" hidden></span></button>
+      <p class="foot">Linear, cold or warm two-fluid theory, as in Chen §4.1–4.21. Plots use Ωₑ = 0.5 ωₚₑ. The puzzle changes at midnight Pacific time.</p>
+    </div>
+  </section>
+
+  <!-- board -->
+  <section class="board" id="board" hidden>
+    <div class="stagecol">
+      <div class="stage" id="stage">
+        <canvas id="cv" aria-label="Wave stage"></canvas>
+        <div class="overlay" id="overlay" hidden></div>
+        <div class="lvl">
+          <div><div class="tag" id="lvlTag">Level 1</div><h2 id="lvlName">Name this wave</h2></div>
+          <div class="clockring" id="clock" aria-label="Time left">
+            <svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="17" fill="none" stroke="var(--line-2)" stroke-width="3"/><circle id="clockArc" cx="20" cy="20" r="17" fill="none" stroke="var(--ink)" stroke-width="3" stroke-linecap="round" stroke-dasharray="106.8" stroke-dashoffset="0"/></svg>
+            <div class="n" id="clockN">30</div>
+          </div>
+        </div>
+      </div>
+      <p class="stagecap" id="stageCap"></p>
+      <div class="seg viewsw" id="viewSw" role="group" aria-label="Which wave the stage shows" hidden><button data-v="target" aria-pressed="true">Target wave</button><button data-v="mine" aria-pressed="false">What your setup makes</button></div>
+      <div class="motion" id="motion" hidden>
+        <p class="label" style="margin:0">Hint · watch it move</p>
+        <div class="mstrip"><canvas id="mcv" aria-label="Animation of the fluid elements in this wave"></canvas></div>
+        <p class="stagecap" id="motionCap"></p>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="card given" id="givenCard">
+        <h3 id="givenTitle">Given</h3>
+        <div id="given"></div>
+      </div>
+      <div class="card">
+        <div class="calls" id="calls"></div>
+        <div class="actions">
+          <button class="btn primary" id="lockBtn" disabled>Lock in</button>
+          <button class="btn more" id="moreBtn" hidden>I need more time <small>+60 s, −50 pts</small></button>
+          <button class="btn primary" id="nextBtn" hidden>Next level</button>
+          <span class="hint" id="lockHint"></span>
+        </div>
+      </div>
+      <div class="card reveal" id="reveal" hidden>
+        <div class="head"><h4 id="revTitle">Both answers right</h4><span class="pts" id="revPts"></span></div>
+        <p id="revWhy"></p>
+        <div class="modecard" id="revMode"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- end -->
+  <section class="screen" id="end" hidden>
+    <div>
+      <p class="label" id="endMode">Final score</p>
+      <div class="big" id="endScore">0</div>
+      <div class="rank" id="endRank"></div>
+      <p class="streak" id="endStreak"></p>
+      <pre class="grid" id="endGrid"></pre>
+      <div class="actions" style="margin-top:0">
+        <button class="btn primary" id="copyBtn">Copy result</button>
+        <button class="btn" id="againBtn">Back to start</button>
+        <span class="hint" id="copyMsg" aria-live="polite"></span>
+      </div>
+      <textarea id="copyFallback" readonly hidden style="width:100%;margin-top:8px;height:120px;background:var(--bg-2);color:var(--ink);border:1px solid var(--line);border-radius:8px;font-family:var(--font-mono);font-size:12px"></textarea>
+      <p class="foot" style="margin-top:12px">One square per question. In Hard each level is a pair: first question, then second. Green: right. Orange: a near miss. Dark: missed.</p>
+    </div>
+    <div class="lb" id="lb">
+      <p class="label" id="lbTitle">Class leaderboard</p>
+      <p class="hint" id="lbMsg" style="margin:0">Connecting to the class board…</p>
+      <ol id="lbList"></ol>
+    </div>
+  </section>
+
+  <p class="foot">Waves and their names follow Chen, <i>Introduction to Plasma Physics and Controlled Fusion</i>, ch. 4, and the class Plasma Waves Explorer. Fluid models only: no Landau damping, no Bernstein waves.</p>
+</div>
+
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const hv = () => document.documentElement.dataset.vis === 'high';
+// canvas text scale: labels drawn on the stage are 30% larger than their nominal size (45% in high visibility)
+const TS = () => hv() ? 1.45 : 1.3;
+
+/* ---------------- daily seed ---------------- */
+function todayPacific() {
+  try { return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Los_Angeles', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()); }
+  catch (e) { return new Date().toISOString().slice(0, 10); }
+}
+const DAY = todayPacific();
+const DAYNUM = Math.round((Date.UTC(...DAY.split('-').map((v, i) => i === 1 ? v - 1 : +v)) - Date.UTC(2026, 10, 18)) / 864e5) + 1;
+function hashString(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+function rngFrom(seed) { let a = hashString(seed); return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+const shuffle = (arr, rand) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+/* ---------------- toggle → wave (ported from the Explorer's modes.js and predict.js) ---------------- */
+const TOGGLES = [
+  { id: 'B0', label: 'Background B₀', options: () => [['off', 'Off'], ['on', 'On']], visible: () => true },
+  { id: 'kDir', label: 'Propagation', options: () => [['par', 'k ∥ B₀'], ['perp', 'k ⊥ B₀']], visible: s => s.B0 === 'on' },
+  { id: 'character', label: 'Wave type', options: () => [['es', 'Electrostatic'], ['em', 'Electromagnetic']], visible: () => true },
+  { id: 'polarization', label: 'Polarization', options: s => s.kDir === 'perp' ? [['Epar', 'E₁ ∥ B₀'], ['Eperp', 'E₁ ⊥ B₀']] : [['R', 'Right-hand'], ['L', 'Left-hand']], visible: s => s.B0 === 'on' && s.character === 'em' },
+  { id: 'ions', label: 'Ions', options: () => [['frozen', 'Frozen'], ['mobile', 'Mobile']], visible: () => true },
+  { id: 'electrons', label: 'Electrons', options: () => [['cold', 'Cold'], ['warm', 'Warm']], visible: () => true },
+  { id: 'ionTemp', label: 'Ion temperature', options: () => [['cold', 'Cold'], ['warm', 'Warm']], visible: s => s.ions === 'mobile' },
+  { id: 'branch', label: 'Branch', options: s => branchOptions(s) || [['high', 'High'], ['low', 'Low']], visible: s => branchOptions(s) != null },
+];
+function branchOptions(s) {
+  if (s.B0 !== 'on' || s.character !== 'em' || s.ions !== 'frozen') return null;
+  if (s.kDir === 'perp' && s.polarization === 'Eperp') return [['high', 'Upper (ω > ω_R)'], ['low', 'Lower (ω_L < ω < ω_UH)']];
+  return null;
+}
+const DEFAULT_STATE = { B0: 'off', kDir: 'par', character: 'es', polarization: 'R', ions: 'frozen', electrons: 'cold', ionTemp: 'cold', branch: 'high' };
+const TG = Object.fromEntries(TOGGLES.map(t => [t.id, t]));
+function norm(partial = {}) {
+  const s = { ...DEFAULT_STATE, ...partial };
+  for (const t of TOGGLES) { const v = t.options(s).map(o => o[0]); if (!v.includes(s[t.id])) s[t.id] = v[0]; }
+  return s;
+}
+const vis = (id, s) => TG[id].visible(s);
+// the answer key a state resolves to (resolveMode + answerKey)
+function keyOf(s) {
+  const mobile = s.ions === 'mobile', mag = s.B0 === 'on', along = !mag || s.kDir === 'par';
+  if (s.character === 'es') {
+    if (along) return mobile ? (s.electrons === 'warm' ? 'ionAcoustic' : 'none') : (s.electrons === 'warm' ? 'langmuir' : 'plasmaOsc');
+    return mobile ? 'lowerHybrid' : 'upperHybrid';
+  }
+  if (!mag) return mobile ? 'none' : 'light';
+  if (s.kDir === 'par') { if (mobile) return 'alfven'; if (s.polarization === 'L') return 'L'; return 'R'; }
+  if (s.polarization === 'Epar') return mobile ? 'none' : 'O';
+  return mobile ? 'magnetosonic' : 'X';
+}
+const ALL_STATES = (() => {
+  const seen = new Set(), out = [];
+  for (const B0 of ['off', 'on']) for (const kDir of ['par', 'perp']) for (const character of ['es', 'em'])
+    for (const polarization of ['Epar', 'Eperp', 'R', 'L']) for (const ions of ['frozen', 'mobile']) for (const electrons of ['cold', 'warm'])
+      for (const ionTemp of ['cold', 'warm']) for (const branch of ['high', 'low']) {
+        const s = norm({ B0, kDir, character, polarization, ions, electrons, ionTemp, branch }), k = JSON.stringify(s);
+        if (!seen.has(k)) { seen.add(k); out.push(s); }
+      }
+  return out;
+})();
+// why a setup has no wave (the Explorer's "none" cards)
+function noneReason(s) {
+  if (s.character === 'es') return 'An ion acoustic wave is pushed by electron pressure and carried by ion inertia, c<sub>s</sub>² = <i class="v">KT</i><sub>e</sub>/<i class="v">M</i>. With cold electrons nothing pushes it, so there is no wave.';
+  if (s.B0 === 'off') return 'Mobile ions means ion timescales, ω ≪ ω<sub>pe</sub>. Below ω<sub>pe</sub> the electrons short out any transverse field, and without B₀ there is no Alfvén or magnetosonic wave to take over.';
+  return 'With E₁ ∥ B₀ the O mode is light in disguise: cut off below ω<sub>pe</sub>. Mobile ions means ω ≪ ω<sub>pe</sub>, and the ions add no low-frequency branch.';
+}
+
+/* ---------------- the 14 answers ---------------- */
+const fr = (a, b) => `<span class="frac"><span>${a}</span><span>${b}</span></span>`;
+const w = '<i>ω</i>', k = '<i>k</i>', c = '<i>c</i>';
+const wpe = '<i>ω</i><sub>pe</sub>', We = 'Ω<sub>e</sub>', Wi = 'Ω<sub>i</sub>', wpi = '<i>ω</i><sub>pi</sub>', wuh = '<i>ω</i><sub>UH</sub>', wlh = '<i>ω</i><sub>LH</sub>';
+const wR = '<i>ω</i><sub>R</sub>', wL = '<i>ω</i><sub>L</sub>', vA = '<i>v</i><sub>A</sub>', vs = '<i>v</i><sub>s</sub>', KTe = '<i>KT</i><sub>e</sub>', KTi = '<i>KT</i><sub>i</sub>', M = '<i>M</i>', m = '<i>m</i>';
+const sq = x => `${x}<sup>2</sup>`;
+const EQ = {
+  plasmaOsc: `${w} = ${wpe}`,
+  langmuir: `${sq(w)} = ${sq(wpe)} + 3${sq(k)} ${fr(KTe, m)}`,
+  ionAcoustic: `${fr(w, k)} = ( ${fr(KTe, M)} ${fr('1', `1 + ${sq(k)}<i>λ</i><sub>D</sub><sup>2</sup>`)} + ${fr('3' + KTi, M)} )<sup>1/2</sup>`,
+  upperHybrid: `${sq(w)} = ${sq(wuh)} = ${sq(wpe)} + ${sq(We)}`,
+  lowerHybrid: `${sq(wlh)} ≈ [ ${fr('1', We + Wi)} + ${fr('1', sq(wpi))} ]<sup>−1</sup>`,
+  light: `${sq(w)} = ${sq(wpe)} + ${sq(c)}${sq(k)}`,
+  O: `${sq(w)} = ${sq(wpe)} + ${sq(c)}${sq(k)}`,
+  X: `${fr(sq(c) + sq(k), sq(w))} = 1 − ${fr(sq(wpe), sq(w))} ${fr(`${sq(w)} − ${sq(wpe)}`, `${sq(w)} − ${sq(wuh)}`)}`,
+  R: `${fr(sq(c) + sq(k), sq(w))} = 1 − ${fr(`${sq(wpe)}/${sq(w)}`, `1 − ${We}/${w}`)}`,
+  whistler: `${fr(sq(c) + sq(k), sq(w))} = 1 − ${fr(`${sq(wpe)}/${sq(w)}`, `1 − ${We}/${w}`)},&ensp; ${w} &lt; ${We}`,
+  L: `${fr(sq(c) + sq(k), sq(w))} = 1 − ${fr(`${sq(wpe)}/${sq(w)}`, `1 + ${We}/${w}`)}`,
+  alfven: `${fr(w, k)} = ${fr(vA, `(1 + ${sq(vA)}/${sq(c)})<sup>1/2</sup>`)},&ensp; ${vA} = ${fr('<i>B</i><sub>0</sub>', '(<i>μ</i><sub>0</sub><i>ρ</i>)<sup>1/2</sup>')}`,
+  magnetosonic: `${fr(sq(w), sq(k))} = ${sq(c)} ${fr(`${sq(vs)} + ${sq(vA)}`, `${sq(c)} + ${sq(vA)}`)}`,
+  none: 'no real <i>ω</i>(<i>k</i>)',
+};
+const MODES = {
+  plasmaOsc: { name: 'Plasma oscillation', facts: ['Electrons slosh along k; the ions stay put.', 'v_g = 0: the crests move but no energy travels.'], recipe: 'B₀ off · electrostatic · ions frozen · electrons cold' },
+  langmuir: { name: 'Langmuir wave', facts: ['Electron pressure lets the oscillation propagate (Bohm–Gross).', 'Purely electrostatic: B₁ = 0.'], recipe: 'B₀ off (or k ∥ B₀) · electrostatic · ions frozen · electrons warm' },
+  ionAcoustic: { name: 'Ion acoustic wave', facts: ['Pushed by electron pressure, carried by ion inertia: a sound wave.', 'Electrons and ions move together, so nᵢ ≈ nₑ.'], recipe: 'B₀ off (or k ∥ B₀) · electrostatic · ions mobile · electrons warm' },
+  upperHybrid: { name: 'Upper hybrid oscillation', facts: ['Two restoring forces on the electrons: space charge and the Lorentz force from B₀.', 'It is the electrostatic resonance of the X mode.'], recipe: 'B₀ on · k ⊥ B₀ · electrostatic · ions frozen' },
+  lowerHybrid: { name: 'Lower hybrid oscillation', facts: ['Electrons are strongly magnetized and E×B drift; ions are nearly unmagnetized and move along k.', 'It is the resonance of the magnetosonic branch.'], recipe: 'B₀ on · k ⊥ B₀ · electrostatic · ions mobile' },
+  light: { name: 'Light wave', facts: ['Transverse: E₁ and B₁ ⊥ k, and n₁ = 0.', 'Cut off below ωₚₑ; v_φ v_g = c².'], recipe: 'B₀ off · electromagnetic · ions frozen' },
+  O: { name: 'O mode', facts: ['E₁ ∥ B₀, so electrons move along B₀ and never feel it.', 'Same dispersion as light in an unmagnetized plasma; cutoff at ωₚₑ.'], recipe: 'B₀ on · k ⊥ B₀ · electromagnetic · E₁ ∥ B₀ · ions frozen' },
+  X: { name: 'X mode', facts: ['E₁ ⊥ B₀ with a component along k, so n₁ ≠ 0.', 'Cutoffs at ω_L and ω_R, resonance at ω_UH.'], recipe: 'B₀ on · k ⊥ B₀ · electromagnetic · E₁ ⊥ B₀ · ions frozen' },
+  R: { name: 'R wave (whistler)', facts: ['E₁ rotates the way electrons gyrate.', 'Resonance at Ωₑ, cutoff at ω_R. Below Ωₑ it is called the whistler: lightning makes falling tones.'], recipe: 'B₀ on · k ∥ B₀ · electromagnetic · right-hand · ions frozen' },
+  L: { name: 'L wave', facts: ['E₁ rotates opposite to the electrons, the way ions gyrate.', 'Cutoff at ω_L. With frozen ions it has no resonance.'], recipe: 'B₀ on · k ∥ B₀ · electromagnetic · left-hand · ions frozen' },
+  alfven: { name: 'Shear Alfvén wave', facts: ['Field lines act like plucked strings: tension from B₀, mass from the ions.', 'Both species E×B drift together, so n₁ = 0.'], recipe: 'B₀ on · k ∥ B₀ · electromagnetic · either hand · ions mobile' },
+  magnetosonic: { name: 'Magnetosonic wave', facts: ['Compresses plasma and field lines together: n₁ ≠ 0 and B₁ ∥ B₀.', 'Restoring force from plasma pressure plus magnetic pressure.'], recipe: 'B₀ on · k ⊥ B₀ · electromagnetic · E₁ ⊥ B₀ · ions mobile' },
+  none: { name: 'No wave exists here', facts: [], recipe: 'for example: electrostatic · ions mobile · electrons cold (no B₀)' },
+};
+// near misses: 40 points. Each pair differs by one knob or one is the other's limit.
+const NEAR = {
+  'plasmaOsc|langmuir': 'They differ only in electron temperature.',
+  'light|O': 'Same dispersion relation: the O mode has a B₀ it never feels.',
+};
+const nearNote = (a, b) => NEAR[a + '|' + b] || NEAR[b + '|' + a] || null;
+
+/* ---------------- level content ----------------
+   Each level: a visual for the stage, a Given card, and two calls.
+   A call is { q, opts: [[html, 'ok' | 'near' | '']] } or a mode call { q, mode: answer, from: [distractors] }. */
+const SETUP = s => ({ kind: 'setup', state: norm(s) });
+const modeCall = (answer, from, q = 'Which wave is this?') => ({ q, mode: answer, from });
+const LV = {};
+// Tier 1: unmagnetized and the two "no wave" setups
+LV.t1_po = { title: 'Name this wave', vis: SETUP({ B0: 'off', character: 'es', ions: 'frozen', electrons: 'cold' }), ans: 'plasmaOsc',
+  calls: [modeCall('plasmaOsc', ['langmuir', 'ionAcoustic', 'light']),
+    { q: 'How fast does energy travel in it?', opts: [['<i class="v">v</i><sub>g</sub> = 0: the crests move but no energy goes anywhere', 'ok'], ['<i class="v">v</i><sub>g</sub> = 3<i class="v">k KT</i><sub>e</sub>/<i class="v">mω</i>', 'near'], ['<i class="v">v</i><sub>g</sub> = <i class="v">c</i>', ''], ['<i class="v">v</i><sub>g</sub> = <i class="v">v</i><sub>φ</sub>', '']] }],
+  why: 'Cold electrons, frozen ions, no B₀: every electron slab oscillates at ω = ω<sub>pe</sub> whatever its <i class="v">k</i>. Since dω/d<i class="v">k</i> = 0, nothing propagates. Warm the electrons and the group velocity becomes 3<i class="v">kKT</i><sub>e</sub>/<i class="v">mω</i>.' };
+LV.t1_lang = { title: 'Name this wave', vis: SETUP({ B0: 'off', character: 'es', ions: 'frozen', electrons: 'warm' }), ans: 'langmuir',
+  calls: [modeCall('langmuir', ['plasmaOsc', 'ionAcoustic', 'light']),
+    { q: 'Which dispersion relation does it obey?', opts: [[EQ.langmuir, 'ok'], [EQ.plasmaOsc, 'near'], [EQ.light, ''], [`${fr(w, k)} = (${KTe}/${M})<sup>1/2</sup>`, '']] }],
+  why: 'Warm electrons add a pressure term to the plasma oscillation. The Bohm–Gross relation ω² = ω<sub>pe</sub>² + 3<i class="v">k</i>²<i class="v">KT</i><sub>e</sub>/<i class="v">m</i> uses γ = 3 because the compression is one-dimensional and fast.' };
+LV.t1_ia = { title: 'Name this wave', vis: SETUP({ B0: 'off', character: 'es', ions: 'mobile', electrons: 'warm' }), ans: 'ionAcoustic',
+  calls: [modeCall('ionAcoustic', ['langmuir', 'magnetosonic', 'alfven']),
+    { q: 'What restores it, and what gives it inertia?', opts: [['Electron pressure restores; ion mass carries it', 'ok'], ['Ion pressure restores; electron mass carries it', ''], ['The Lorentz force restores; ion mass carries it', ''], ['Electron pressure restores; electron mass carries it', '']] }],
+  why: 'On ion timescales the light electrons follow the potential almost instantly, so their pressure becomes the spring and the heavy ions are the mass: <i class="v">c</i><sub>s</sub> = (<i class="v">KT</i><sub>e</sub>/<i class="v">M</i>)<sup>1/2</sup> for cold ions. Electrons with mass but no pressure would give the plasma oscillation.' };
+LV.t1_light = { title: 'Name this wave', vis: SETUP({ B0: 'off', character: 'em', ions: 'frozen', electrons: 'cold' }), ans: 'light',
+  calls: [modeCall('light', ['O', 'plasmaOsc', 'R']),
+    { q: 'Below which frequency can it not propagate?', opts: [[wpe, 'ok'], [wuh, ''], [We, ''], ['None: it propagates at every ω', '']] }],
+  why: 'With no B₀, the electrons respond to a transverse E₁ like free charges. Below ω<sub>pe</sub> they cancel the field and <i class="v">k</i> turns imaginary. That is why the ionosphere reflects AM radio. The O mode has the same relation but needs a B₀.' };
+LV.t1_noIA = { title: 'Does a wave exist?', vis: SETUP({ B0: 'off', character: 'es', ions: 'mobile', electrons: 'cold', ionTemp: 'cold' }), ans: 'none',
+  calls: [modeCall('none', ['ionAcoustic', 'plasmaOsc', 'langmuir']),
+    { q: 'Which single change gives a propagating wave?', opts: [['Warm the electrons', 'ok'], ['Warm the ions', 'near'], ['Make it electromagnetic', ''], ['Turn on B₀ with k ∥ B₀', '']] }],
+  why: 'An ion acoustic wave needs electron pressure. Cold electrons give <i class="v">c</i><sub>s</sub> = 0. Warm ions alone give an ion wave in fluid theory, but in a real plasma it is strongly Landau damped. A B₀ along <i class="v">k</i> changes nothing for an electrostatic wave.' };
+LV.t1_noEM = { title: 'Does a wave exist?', vis: SETUP({ B0: 'off', character: 'em', ions: 'mobile', electrons: 'warm' }), ans: 'none',
+  calls: [modeCall('none', ['alfven', 'light', 'magnetosonic']),
+    { q: 'Why?', opts: [['Below ω<sub>pe</sub> electrons short out transverse fields, and without B₀ there is no Alfvén wave', 'ok'], ['The ions are too heavy to carry an electromagnetic wave', ''], ['Electromagnetic waves need cold electrons', ''], ['Light can never travel through a plasma', '']] }],
+  why: 'Mobile ions means the ion timescale, far below ω<sub>pe</sub>. Light is cut off there. With a B₀ along <i class="v">k</i> the shear Alfvén wave would fill this gap; without B₀ nothing does.' };
+LV.t1_par = { title: 'Name this wave', vis: SETUP({ B0: 'on', kDir: 'par', character: 'es', ions: 'frozen', electrons: 'warm' }), ans: 'langmuir',
+  calls: [modeCall('langmuir', ['plasmaOsc', 'ionAcoustic', 'R']),
+    { q: 'What does B₀ do to this wave?', opts: [['Nothing: electrons move along B₀, so <b class="v">v</b> × <b class="v">B</b>₀ = 0', 'ok'], ['Raises the frequency to ω<sub>UH</sub>', ''], ['Makes the electrons gyrate in circles', ''], ['Cuts it off below Ω<sub>e</sub>', '']] }],
+  why: 'An electrostatic wave with <i class="v">k</i> ∥ B₀ pushes electrons along B₀, where the Lorentz force vanishes. It is the same Langmuir wave as with B₀ off. Only <i class="v">k</i> ⊥ B₀ brings in Ω<sub>e</sub> and gives the upper hybrid oscillation.' };
+
+// Tier 2: magnetized setups
+LV.t2_uh = { title: 'Name this wave', vis: SETUP({ B0: 'on', kDir: 'perp', character: 'es', ions: 'frozen', electrons: 'cold' }), ans: 'upperHybrid',
+  calls: [modeCall('upperHybrid', ['X', 'plasmaOsc', 'lowerHybrid']),
+    { q: 'What is its frequency?', opts: [[`${sq(w)} = ${sq(wpe)} + ${sq(We)}`, 'ok'], [`${w} = ${wpe}`, ''], [`${w} = ${We}`, ''], [`${sq(w)} = ${We}${Wi}`, '']] }],
+  why: 'With <i class="v">k</i> ⊥ B₀ the electrons are pushed across B₀. They feel two restoring forces, space charge (ω<sub>pe</sub>) and the Lorentz force (Ω<sub>e</sub>), so ω² = ω<sub>pe</sub>² + Ω<sub>e</sub>² and the electrons trace ellipses.' };
+LV.t2_lh = { title: 'Name this wave', vis: SETUP({ B0: 'on', kDir: 'perp', character: 'es', ions: 'mobile', electrons: 'cold' }), ans: 'lowerHybrid',
+  calls: [modeCall('lowerHybrid', ['upperHybrid', 'ionAcoustic', 'magnetosonic']),
+    { q: 'What do the electrons do?', opts: [['They are tied to B₀ and E×B drift across k', 'ok'], ['They slosh freely along k', ''], ['They stay put', ''], ['They stream along B₀', '']] }],
+  why: 'At ω<sub>LH</sub>, far below Ω<sub>e</sub> but above Ω<sub>i</sub>, electrons are strongly magnetized and only drift, while the ions barely feel B₀ and move along <i class="v">k</i>. This needs <i class="v">k</i> almost exactly ⊥ B₀.' };
+LV.t2_O = { title: 'Name this wave', vis: SETUP({ B0: 'on', kDir: 'perp', character: 'em', polarization: 'Epar', ions: 'frozen' }), ans: 'O',
+  calls: [modeCall('O', ['light', 'X', 'L']),
+    { q: 'Why doesn’t B₀ appear in its dispersion relation?', opts: [['E₁ ∥ B₀ moves electrons along B₀, where <b class="v">v</b> × <b class="v">B</b>₀ = 0', 'ok'], ['B₀ is too weak to matter', ''], ['The ions cancel the effect of B₀', ''], ['It does: ω² = ω<sub>UH</sub>² + <i class="v">c</i>²<i class="v">k</i>²', '']] }],
+  why: 'The ordinary wave is “ordinary” because it ignores B₀: ω² = ω<sub>pe</sub>² + <i class="v">c</i>²<i class="v">k</i>², exactly like light. Calling it light earns partial credit, but light has no B₀ at all.' };
+LV.t2_X = { title: 'Name this wave', vis: SETUP({ B0: 'on', kDir: 'perp', character: 'em', polarization: 'Eperp', ions: 'frozen', branch: 'high' }), ans: 'X',
+  calls: [modeCall('X', ['O', 'magnetosonic', 'L']),
+    { q: 'What is unusual about its E₁?', opts: [['It has a part along k, so n₁ ≠ 0', 'ok'], ['It is parallel to B₀', ''], ['It is exactly circularly polarized', ''], ['It is zero; only B₁ oscillates', '']] }],
+  why: 'With E₁ ⊥ B₀ the electrons are pushed across B₀ and their gyration swings them along <i class="v">k</i> too. E₁ becomes elliptical in the plane ⊥ B₀, so the extraordinary wave is partly electrostatic.' };
+LV.t2_R = { title: 'Name this wave', vis: SETUP({ B0: 'on', kDir: 'par', character: 'em', polarization: 'R', ions: 'frozen' }), ans: 'R',
+  calls: [modeCall('R', ['L', 'X', 'O']),
+    { q: 'Where is its cutoff?', opts: [[wR, 'ok'], [wL, ''], [wpe, ''], [We, '']] }],
+  why: 'Along B₀ the wave splits into right- and left-hand circular waves. The right-hand one turns with the electrons. It is cut off at ω<sub>R</sub> = ½[Ω<sub>e</sub> + (Ω<sub>e</sub>² + 4ω<sub>pe</sub>²)<sup>1/2</sup>], above ω<sub>pe</sub>, and propagates again below Ω<sub>e</sub>, where it is called the whistler.' };
+LV.t2_L = { title: 'Name this wave', vis: SETUP({ B0: 'on', kDir: 'par', character: 'em', polarization: 'L', ions: 'frozen' }), ans: 'L',
+  calls: [modeCall('L', ['R', 'O', 'alfven']),
+    { q: 'Where is its cutoff?', opts: [[wL, 'ok'], [wR, ''], [wpe, ''], [We, '']] }],
+  why: 'The left-hand wave turns opposite to the electrons, so they resist it less effectively than for the R wave and its cutoff sits lower: ω<sub>L</sub> = ½[−Ω<sub>e</sub> + (Ω<sub>e</sub>² + 4ω<sub>pe</sub>²)<sup>1/2</sup>], below ω<sub>pe</sub>.' };
+LV.t2_A = { title: 'Name this wave', vis: SETUP({ B0: 'on', kDir: 'par', character: 'em', polarization: 'L', ions: 'mobile', electrons: 'cold' }), ans: 'alfven',
+  calls: [modeCall('alfven', ['L', 'magnetosonic', 'ionAcoustic']),
+    { q: 'What sets its speed?', opts: [[`${vA} = <i>B</i><sub>0</sub>/(<i>μ</i><sub>0</sub><i>ρ</i>)<sup>1/2</sup>`, 'ok'], [`(${sq(vs)} + ${sq(vA)})<sup>1/2</sup>`, ''], [`(${KTe}/${M})<sup>1/2</sup>`, ''], [`${c}`, '']] }],
+  why: 'Mobile ions and <i class="v">k</i> ∥ B₀: the field lines are plucked strings. Magnetic tension is the spring and the ion mass density is the mass, so ω/<i class="v">k</i> = <i class="v">v</i><sub>A</sub>. At ω ≪ Ω<sub>i</sub> the R and L waves merge into it.' };
+LV.t2_MS = { title: 'Name this wave', vis: SETUP({ B0: 'on', kDir: 'perp', character: 'em', polarization: 'Eperp', ions: 'mobile', electrons: 'warm' }), ans: 'magnetosonic',
+  calls: [modeCall('magnetosonic', ['alfven', 'ionAcoustic', 'X']),
+    { q: 'What is its phase speed, for <i class="v">v</i><sub>A</sub> ≪ <i class="v">c</i>?', opts: [[`(${sq(vs)} + ${sq(vA)})<sup>1/2</sup>`, 'ok'], [vA, 'near'], [vs, ''], [c, '']] }],
+  why: 'With <i class="v">k</i> ⊥ B₀ the wave squeezes plasma and field lines together, so plasma pressure (<i class="v">v</i><sub>s</sub>) and magnetic pressure (<i class="v">v</i><sub>A</sub>) both push back. With cold electrons <i class="v">v</i><sub>s</sub> → 0 and the speed falls to <i class="v">v</i><sub>A</sub>.' };
+LV.t2_noO = { title: 'Does a wave exist?', vis: SETUP({ B0: 'on', kDir: 'perp', character: 'em', polarization: 'Epar', ions: 'mobile', electrons: 'cold' }), ans: 'none',
+  calls: [modeCall('none', ['O', 'magnetosonic', 'alfven']),
+    { q: 'Why?', opts: [['E₁ ∥ B₀ makes it light in disguise, cut off below ω<sub>pe</sub>; mobile ions means ω ≪ ω<sub>pe</sub>', 'ok'], ['The ions short out E₁', ''], ['B₀ blocks waves with k ⊥ B₀', ''], ['It needs warm electrons', '']] }],
+  why: 'The O mode ignores B₀, so on ion timescales it behaves like light far below ω<sub>pe</sub>: no wave. Switching to E₁ ⊥ B₀ gives the magnetosonic wave; freezing the ions gives the O mode back.' };
+
+// Tier 3: representations (equations, plots, cutoffs, motion, the real world)
+const EQV = (html, lab) => ({ kind: 'eq', html, lab });
+const ss = (base, sub) => `${base}<span class="ss"><sup>2</sup><sub>${sub}</sub></span>`;
+LV.t3_eqW = { title: 'Which wave obeys this?', vis: EQV(EQ.whistler), ans: 'R',
+  given: 'Cold electrons, ions frozen. The dispersion relation above is all you get.',
+  calls: [modeCall('R', ['L', 'X', 'O']),
+    { q: 'A lightning stroke excites all frequencies at once. What does a receiver far away hear?', opts: [['A falling tone: higher frequencies arrive first', 'ok'], ['A rising tone: lower frequencies arrive first', ''], ['A click: all frequencies arrive together', ''], ['Nothing: the wave is cut off', '']] }],
+  why: 'The minus sign before Ω<sub>e</sub>/ω makes it the right-hand wave; below Ω<sub>e</sub> it is called the whistler. Its group velocity grows with ω (for ω ≪ Ω<sub>e</sub>, <i class="v">v</i><sub>g</sub> ∝ ω<sup>1/2</sup>), so the high tones outrun the low ones.' };
+LV.t3_eqX = { title: 'Which wave obeys this?', vis: EQV(EQ.X), ans: 'X',
+  given: 'Cold electrons, ions frozen, <i class="v">k</i> ⊥ B₀.',
+  calls: [modeCall('X', ['O', 'R', 'L']),
+    { q: 'Where is its resonance?', opts: [[wuh, 'ok'], [wpe, ''], [wR, ''], [We, '']] }],
+  why: 'The ω² − ω<sub>UH</sub>² in the denominator is the giveaway: the X mode’s index blows up at the upper hybrid frequency. The zeros of the right side give its cutoffs, ω<sub>L</sub> and ω<sub>R</sub>.' };
+LV.t3_eqIA = { title: 'Which wave obeys this?', vis: EQV(EQ.ionAcoustic), ans: 'ionAcoustic',
+  given: 'λ<sub>D</sub> is the Debye length; <i class="v">M</i> is the ion mass.',
+  calls: [modeCall('ionAcoustic', ['langmuir', 'alfven', 'magnetosonic']),
+    { q: 'For <i class="v">k</i>λ<sub>D</sub> ≫ 1 (and cold ions), the frequency approaches', opts: [[`the ion plasma frequency ${wpi}`, 'ok'], [wpe, ''], ['zero', ''], [Wi, '']] }],
+  why: 'At long wavelength the ion acoustic wave is sound, ω = <i class="v">kc</i><sub>s</sub>. At short wavelength the electrons can no longer shield the ions, and the ions oscillate by themselves at ω<sub>pi</sub> = (<i class="v">n</i>e²/ε₀<i class="v">M</i>)<sup>1/2</sup>.' };
+LV.t3_eqMS = { title: 'Which wave obeys this?', vis: EQV(EQ.magnetosonic), ans: 'magnetosonic',
+  given: 'Mobile ions, warm electrons.',
+  calls: [modeCall('magnetosonic', ['alfven', 'ionAcoustic', 'X']),
+    { q: 'Which geometry produces it?', opts: [['k ⊥ B₀, E₁ ⊥ B₀', 'ok'], ['k ∥ B₀, E₁ ⊥ B₀', ''], ['k ⊥ B₀, E₁ ∥ B₀', ''], ['No B₀ at all', '']] }],
+  why: 'Both <i class="v">v</i><sub>s</sub> and <i class="v">v</i><sub>A</sub> appear, so both plasma pressure and magnetic pressure act. That only happens when the wave compresses the field lines, with <i class="v">k</i> ⊥ B₀ and E₁ ⊥ B₀.' };
+LV.t3_cutL = { title: 'Which wave is this?', vis: EQV(`${wL} = ½ [ −${We} + √<span class="rad">${ss('Ω', 'e')} + 4${ss('<i>ω</i>', 'pe')}</span> ]`, 'Cutoff'), ans: 'L',
+  given: 'It travels along B₀, the ions are frozen, and it has no resonance.',
+  calls: [modeCall('L', ['R', 'O', 'alfven']),
+    { q: 'At a cutoff, the index of refraction <i class="v">n</i> = <i class="v">ck</i>/ω goes to', opts: [['0: the wave reflects', 'ok'], ['∞: the wave is absorbed', ''], ['1: the plasma becomes transparent', ''], ['−1', '']] }],
+  why: 'The −Ω<sub>e</sub> inside the bracket makes this the lower cutoff, ω<sub>L</sub>, which belongs to the left-hand wave along B₀. At a cutoff <i class="v">k</i> → 0 and the wave reflects; at a resonance <i class="v">k</i> → ∞.' };
+LV.t3_resWe = { title: 'Which wave is this?', vis: EQV(`${w} = ${We}&emsp;with&emsp;${k} ∥ <i>B</i><sub>0</sub>,&ensp; ${w} &lt; ${We}`, 'Resonance'), ans: 'R', noBonus: true,
+  given: 'Ions frozen. The wave propagates all the way down to ω → 0.',
+  calls: [modeCall('R', ['L', 'X', 'O']),
+    { q: 'At a resonance, <i class="v">n</i> = <i class="v">ck</i>/ω goes to', opts: [['∞: the wavelength shrinks to zero and the wave is absorbed', 'ok'], ['0: the wave reflects', ''], ['1', ''], ['It stays finite', '']] }],
+  why: 'A resonance at Ω<sub>e</sub> with <i class="v">k</i> ∥ B₀ means the field turns with the electrons and pumps them: the right-hand wave. Below Ω<sub>e</sub> it is also called the whistler.' };
+const PLOT = (id, note) => ({ kind: 'plot', id, note });
+LV.t3_plW = { title: 'Which wave is plotted?', vis: PLOT('whistler'), ans: 'R',
+  given: '<i class="v">k</i> ∥ B₀, ions frozen. Dashed diagonal: the light line ω = <i class="v">ck</i>.',
+  calls: [modeCall('R', ['L', 'alfven', 'X']),
+    { q: 'The horizontal line the curve approaches is a', opts: [['resonance at Ω<sub>e</sub>', 'ok'], ['cutoff at Ω<sub>e</sub>', ''], ['cutoff at ω<sub>pe</sub>', ''], ['resonance at ω<sub>UH</sub>', '']] }],
+  why: 'The curve starts at ω = 0 and flattens against Ω<sub>e</sub> as <i class="v">k</i> grows: a resonance. Only the right-hand wave does that along B₀; this part of it, below Ω<sub>e</sub>, is called the whistler.' };
+LV.t3_plX = { title: 'Which wave is plotted?', vis: PLOT('X'), ans: 'X',
+  given: '<i class="v">k</i> ⊥ B₀, ions frozen, cold electrons. Both branches are shown.',
+  calls: [modeCall('X', ['O', 'R', 'L']),
+    { q: 'At large <i class="v">k</i> the lower branch flattens toward ω<sub>UH</sub>. There the wave becomes', opts: [['the upper hybrid oscillation, nearly electrostatic', 'ok'], ['an ordinary light wave', ''], ['a whistler', ''], ['evanescent', '']] }],
+  why: 'Two branches with a stop band between ω<sub>UH</sub> and ω<sub>R</sub>, cutoffs at ω<sub>L</sub> and ω<sub>R</sub>: that is the X mode. Near its resonance <i class="v">k</i> is huge, E₁ lines up with <i class="v">k</i>, and the wave is the upper hybrid oscillation.' };
+LV.t3_plLight = { title: 'Which wave is plotted?', vis: PLOT('light'), ans: 'light',
+  given: 'B₀ = 0, ions frozen. Dashed diagonal: the light line ω = <i class="v">ck</i>.',
+  calls: [modeCall('light', ['O', 'langmuir', 'plasmaOsc']),
+    { q: 'At large <i class="v">k</i>, its group velocity approaches', opts: [['<i class="v">c</i>', 'ok'], ['0', ''], ['(3<i class="v">KT</i><sub>e</sub>/<i class="v">m</i>)<sup>1/2</sup>', ''], ['<i class="v">v</i><sub>A</sub>', '']] }],
+  why: 'A hyperbola that starts at ω<sub>pe</sub> and hugs the light line: ω² = ω<sub>pe</sub>² + <i class="v">c</i>²<i class="v">k</i>². The Bohm–Gross curve has the same shape but approaches the much shallower line ω = (3<i class="v">KT</i><sub>e</sub>/<i class="v">m</i>)<sup>1/2</sup><i class="v">k</i>.' };
+LV.t3_plL = { title: 'Which wave is plotted?', vis: PLOT('L'), ans: 'L',
+  given: '<i class="v">k</i> ∥ B₀, ions frozen. Dashed diagonal: the light line.',
+  calls: [modeCall('L', ['R', 'O', 'X']),
+    { q: 'Below the frequency where the curve starts, this wave is', opts: [['evanescent: it is cut off', 'ok'], ['resonant', ''], ['a right-hand wave', ''], ['unaffected', '']] }],
+  why: 'It starts at ω<sub>L</sub> &lt; ω<sub>pe</sub> and has no resonance: the left-hand wave. The R wave starts higher, at ω<sub>R</sub> &gt; ω<sub>pe</sub>.' };
+const ANIMV = (mode, note) => ({ kind: 'anim', mode, note });
+LV.t3_anA = { title: 'Which wave is moving?', vis: ANIMV('alfven'), ans: 'alfven',
+  given: 'Watch the field lines and both species. Ions are mobile.',
+  calls: [modeCall('alfven', ['magnetosonic', 'ionAcoustic', 'light']),
+    { q: 'What pulls the field lines back?', opts: [['Magnetic tension, like a plucked string', 'ok'], ['Magnetic pressure', 'near'], ['Electron pressure', ''], ['Space charge', '']] }],
+  why: 'k ∥ B₀ and the field lines bend sideways, carrying both species with them: the shear Alfvén wave. Bending lines is tension. Squeezing them together (magnetic pressure) is the magnetosonic wave.' };
+LV.t3_anMS = { title: 'Which wave is moving?', vis: ANIMV('magnetosonic'), ans: 'magnetosonic',
+  given: 'B₀ points out of the screen (⊙). Watch how the ⊙ marks bunch up.',
+  calls: [modeCall('magnetosonic', ['ionAcoustic', 'alfven', 'X']),
+    { q: 'Does the wave change |<b class="v">B</b>|?', opts: [['Yes: B₁ ∥ B₀, compressed with the plasma', 'ok'], ['No: it only bends the field lines', ''], ['No: B₁ = 0', ''], ['Yes, but the density stays fixed', '']] }],
+  why: 'Both species compress along <i class="v">k</i> and the frozen-in field compresses with them, so B₁ is along B₀. An ion acoustic wave compresses the plasma too, but it has no B₀ in it and B₁ = 0.' };
+LV.t3_anIA = { title: 'Which wave is moving?', vis: ANIMV('ionAcoustic'), ans: 'ionAcoustic',
+  given: 'No B₀. Watch which species move.',
+  calls: [modeCall('ionAcoustic', ['langmuir', 'light', 'magnetosonic']),
+    { q: 'Is it electrostatic or electromagnetic?', opts: [['Electrostatic: the motion is along k, so B₁ = 0', 'ok'], ['Electromagnetic: B₁ ≠ 0', ''], ['Both equally', ''], ['Neither', '']] }],
+  why: 'Both species bunch up together along <i class="v">k</i>: a sound wave in the plasma. In a Langmuir wave only the electrons move.' };
+LV.t3_anR = { title: 'Which wave is moving?', vis: ANIMV('R'), ans: 'R',
+  given: 'B₀ runs left to right along <i class="v">k</i>. The inset looks along B₀. ω is above ω<sub>R</sub>; ions frozen.',
+  calls: [modeCall('R', ['L', 'X', 'O']),
+    { q: 'Compared with electron gyration, the electrons in the wave turn', opts: [['the same way', 'ok'], ['the opposite way', ''], ['not at all: they move in straight lines', ''], ['the same way, but only below Ω<sub>i</sub>', '']] }],
+  why: 'In the inset the fluid electrons go round in the same sense as their free gyration (clockwise looking along B₀): a right-hand wave: the R wave.' };
+LV.t3_anL = { title: 'Which wave is moving?', vis: ANIMV('L'), ans: 'L',
+  given: 'B₀ runs left to right along <i class="v">k</i>. The inset looks along B₀. ω is above ω<sub>L</sub>; ions frozen.',
+  calls: [modeCall('L', ['R', 'X', 'O']),
+    { q: 'Compared with electron gyration, the electrons in the wave turn', opts: [['the opposite way', 'ok'], ['the same way', ''], ['not at all', ''], ['randomly', '']] }],
+  why: 'The fluid electrons turn counterclockwise looking along B₀, against their own gyration. That is the left-hand wave, which turns the way ions gyrate.' };
+LV.t3_anLH = { title: 'Which wave is moving?', vis: ANIMV('lowerHybrid'), ans: 'lowerHybrid',
+  given: 'B₀ points out of the screen (⊙). Watch which way each species moves.',
+  calls: [modeCall('lowerHybrid', ['upperHybrid', 'magnetosonic', 'ionAcoustic']),
+    { q: 'Why do the electrons move across k instead of along it?', opts: [['They are magnetized: E₁ along k makes them E×B drift', 'ok'], ['Their pressure pushes them sideways', ''], ['They are frozen', ''], ['The wave is electromagnetic', '']] }],
+  why: 'Ions move along <i class="v">k</i> and electrons drift across it: the lower hybrid oscillation, where ω ≪ Ω<sub>e</sub> ties the electrons to B₀ while ω ≫ Ω<sub>i</sub> leaves the ions nearly free.' };
+const STORY = (html) => ({ kind: 'story', html });
+LV.t3_stIono = { title: 'Which wave is this?', vis: STORY('At night, AM radio stations a thousand miles away come in clearly, bouncing off the ionosphere. FM stations never do.'), ans: 'light',
+  given: 'AM is near 1 MHz, FM near 100 MHz. Ignore Earth’s magnetic field.',
+  calls: [modeCall('light', ['R', 'plasmaOsc', 'alfven']),
+    { q: 'Why does FM get through?', opts: [['Its frequency is above the ionosphere’s ω<sub>pe</sub>', 'ok'], ['Its wavelength is longer', ''], ['It is circularly polarized', ''], ['FM waves are electrostatic', '']] }],
+  why: 'The ionosphere’s plasma frequency is a few MHz. AM is below it and is cut off and reflected; FM is above it and passes into space.' };
+LV.t3_stInt = { title: 'Which wave is this?', vis: STORY('To measure a tokamak’s density, a microwave beam crosses the plasma at right angles to B₀, polarized with E₁ along B₀. The phase shift gives the line-averaged density.'), ans: 'O',
+  given: 'Ions are frozen at microwave frequencies.',
+  calls: [modeCall('O', ['X', 'light', 'R']),
+    { q: 'Why choose that polarization?', opts: [['Its index of refraction depends only on density, not on B₀', 'ok'], ['It has no cutoff', ''], ['It resonates at Ω<sub>e</sub>', ''], ['It travels faster than <i class="v">c</i>', '']] }],
+  why: '<i class="v">k</i> ⊥ B₀ with E₁ ∥ B₀ is the O mode: <i class="v">n</i>² = 1 − ω<sub>pe</sub>²/ω² depends on density alone. Calling it light gets partial credit; it has the same index, but there is a B₀.' };
+LV.t3_stSun = { title: 'Which wave is this?', vis: STORY('Spacecraft in the solar wind see the magnetic field wobble sideways with no change in density or field strength, moving along the field at a speed set by B₀ and the ion density.'), ans: 'alfven',
+  given: 'The frequencies are far below the ion cyclotron frequency.',
+  calls: [modeCall('alfven', ['magnetosonic', 'ionAcoustic', 'R']),
+    { q: 'If the ion density quadrupled at fixed B₀, the wave speed would', opts: [['halve', 'ok'], ['double', ''], ['quarter', ''], ['stay the same', '']] }],
+  why: 'Sideways wobble with constant |B| and constant density is the shear Alfvén wave. <i class="v">v</i><sub>A</sub> = B₀/(μ₀ρ)<sup>1/2</sup>, so four times the density halves the speed.' };
+
+const TIER1 = ['t1_po', 't1_lang', 't1_ia', 't1_light', 't1_noIA', 't1_noEM'];
+const TIER2 = ['t2_O', 't2_X', 't2_R', 't2_L', 't2_A', 't2_MS', 't2_noO', 't1_par'];
+const TIER3 = ['t3_eqW', 't3_eqX', 't3_eqIA', 't3_eqMS', 't3_cutL', 't3_resWe', 't3_plW', 't3_plX', 't3_plLight', 't3_plL', 't3_anA', 't3_anMS', 't3_anIA', 't3_anR', 't3_anL', 't3_stIono', 't3_stInt', 't3_stSun'];
+// Hard's identification levels: the Easy pool, minus dispersion plots and levels whose picture is the animation
+const HARD_ID = [...TIER1, ...TIER2, ...TIER3].filter(id => LV[id].vis.kind !== 'plot' && LV[id].vis.kind !== 'anim');
+const BUILD_TARGETS = ['plasmaOsc', 'langmuir', 'ionAcoustic', 'light', 'O', 'X', 'R', 'L', 'alfven', 'magnetosonic', 'none'];
+const BUILD_CLUE = {
+  plasmaOsc: 'Electrons oscillate at exactly ω<sub>pe</sub>, and the oscillation goes nowhere.',
+  langmuir: 'An electron oscillation that propagates, with ω² = ω<sub>pe</sub>² + 3<i class="v">k</i>²<i class="v">KT</i><sub>e</sub>/<i class="v">m</i>.',
+  ionAcoustic: 'Sound in a plasma.',
+  upperHybrid: 'Electrons oscillate across B₀ at ω<sub>UH</sub>.',
+  lowerHybrid: 'Both species oscillate across B₀ at ω<sub>LH</sub>.',
+  light: 'A transverse wave with ω² = ω<sub>pe</sub>² + <i class="v">c</i>²<i class="v">k</i>² and no magnetic field anywhere.',
+  O: 'Same dispersion as light, but there is a B₀ it never feels.',
+  X: 'Cutoffs at ω<sub>L</sub> and ω<sub>R</sub>, resonance at ω<sub>UH</sub>.',
+  R: 'Circularly polarized along B₀, turning with the electrons. Lightning makes it whistle.',
+  L: 'Circularly polarized along B₀, turning against the electrons.',
+  alfven: 'A plucked magnetic field line.',
+  magnetosonic: 'Compresses the plasma and the field lines together.',
+  none: 'Find a setup where no wave propagates at all.',
+};
+// bonus questions: asked only after the wave is named correctly, about the oscillation at its resonance
+const BONUS_Q = {
+  R: { q: 'Raise the frequency until ω → Ω<sub>e</sub>. What resonant oscillation appears?',
+    opts: [['Electron cyclotron resonance: E₁ turns in step with the gyrating electrons', 'ok'], ['The upper hybrid oscillation', ''], ['The plasma oscillation at ω<sub>pe</sub>', ''], ['Ion cyclotron resonance', '']],
+    why: 'At ω = Ω<sub>e</sub> the right-hand field turns at exactly the electrons’ gyrofrequency, so it pushes each electron the same way every turn. They absorb the wave: electron cyclotron resonance, used to heat fusion plasmas (ECRH).' },
+  X: { q: 'The X mode has a resonance at ω → ω<sub>UH</sub>. What oscillation appears there?',
+    opts: [['The upper hybrid oscillation', 'ok'], ['Electron cyclotron resonance', ''], ['The lower hybrid oscillation', ''], ['The plasma oscillation', '']],
+    why: 'Near ω<sub>UH</sub> the wavelength shrinks, E₁ lines up with <i class="v">k</i>, and the X mode turns into the electrostatic upper hybrid oscillation, with ω² = ω<sub>pe</sub>² + Ω<sub>e</sub>².' },
+  magnetosonic: { q: 'Follow this branch up in frequency (cold electrons, <i class="v">k</i> ⊥ B₀) until it resonates. What oscillation appears there?',
+    opts: [['The lower hybrid oscillation', 'ok'], ['The upper hybrid oscillation', ''], ['Ion cyclotron resonance', ''], ['The ion acoustic wave', '']],
+    why: 'The magnetosonic wave is the low-frequency end of the X mode. Its resonance is at ω<sub>LH</sub>, where it becomes the electrostatic lower hybrid oscillation: electrons E×B drift, ions move along <i class="v">k</i>.' },
+  alfven: { q: 'Follow its left-hand branch up in frequency until ω → Ω<sub>i</sub>. What resonance appears?',
+    opts: [['Ion cyclotron resonance: E₁ turns in step with the gyrating ions', 'ok'], ['Electron cyclotron resonance', ''], ['The lower hybrid oscillation', ''], ['The upper hybrid oscillation', '']],
+    why: 'Far below Ω<sub>i</sub> the R and L waves with mobile ions merge into the shear Alfvén wave. On the left-hand branch, as ω → Ω<sub>i</sub> the field turns at the ions’ gyrofrequency and the ions absorb it: ion cyclotron resonance, used to heat fusion plasmas (ICRH).' },
+};
+const HALF_A = ['B0', 'kDir', 'character', 'polarization', 'branch'], HALF_B = ['ions', 'electrons', 'ionTemp'];
+
+/* ---------------- runs ---------------- */
+// seconds per level. Easy grows by tier; Hard never allows less time per level than Easy does.
+const TIME = { 1: 60, 2: 75, 3: 90 }, HARD_TIME = 90, BUILD_TIME = 105;
+function makeLevel(id, rand, extra) {
+  const L = { id, ...LV[id], ...extra };
+  if (BONUS_Q[L.ans] && !L.noBonus) L.bonusQ = { ...BONUS_Q[L.ans], opts: shuffle(BONUS_Q[L.ans].opts, rand) };
+  L.calls = L.calls.map(cl => {
+    if (cl.mode) {
+      const opts = [cl.mode, ...cl.from].map(kk => [MODES[kk].name, kk === cl.mode ? 'ok' : nearNote(cl.mode, kk) ? 'near' : '', kk]);
+      return { q: cl.q, opts: shuffle(opts, rand), modeCall: true };
+    }
+    return { q: cl.q, opts: shuffle(cl.opts, rand) };
+  });
+  return L;
+}
+// draw n levels from a pool without repeating an answer already used today ("no wave" may appear twice)
+function pickUnique(pool, n, used, rand) {
+  const out = [];
+  for (const id of shuffle(pool, rand)) {
+    if (out.length === n) break;
+    const a = LV[id].ans, cap = a === 'none' ? 2 : 1;
+    if ((used[a] || 0) >= cap) continue;
+    used[a] = (used[a] || 0) + 1; out.push(id);
+  }
+  // not enough fresh answers left: allow an answer already used today, but not twice in this draw
+  for (const id of shuffle(pool, rand)) {
+    if (out.length === n) break;
+    if (out.includes(id) || out.some(o => LV[o].ans === LV[id].ans)) continue;
+    used[LV[id].ans] = (used[LV[id].ans] || 0) + 1; out.push(id);
+  }
+  return out;
+}
+function buildRun(mode) {
+  const rand = rngFrom(`wavedle|${DAY}|${mode}`), used = {};
+  if (mode === 'easy') {
+    // Easy asks only the first question of each level: which wave is it?
+    const pickT = (pool, n, tier) => pickUnique(pool, n, used, rand).map(id => { const L = makeLevel(id, rand, { tier, time: TIME[tier] }); L.calls = L.calls.slice(0, 1); return L; });
+    return [...pickT(TIER1, 5, 1), ...pickT(TIER2, 4, 2), ...pickT(TIER3, 3, 3)];
+  }
+  const targets = shuffle(BUILD_TARGETS, rand).slice(0, 5);
+  targets.forEach(t => used[t] = 2);
+  const builds = targets.map(t => ({ id: 'build_' + t, build: true, ans: t, time: BUILD_TIME, title: t === 'none' ? 'Build a setup with no wave' : `Build it: ${MODES[t].name}`, vis: { kind: 'build' } }));
+  // the day's levels are shared; their order and the order of answer choices change every time Hard starts
+  const ids = pickUnique(HARD_ID, 5, used, rand).map(id => makeLevel(id, Math.random, { time: HARD_TIME }));
+  return shuffle([...builds, ...ids], Math.random);
+}
+
+/* ---------------- scoring (Driftdle's numbers) ---------------- */
+const PTS_PER = 100, NOTCH = 40, BONUS = 50, XQ_PTS = 50;
+const EXTRA_T = 60, EXTRA_PENALTY = 50, EXTRA_AT = 10;
+let LEVELS = [];
+const nQ = L => L.build ? 2 : L.calls.length;
+const maxTotal = () => LEVELS.reduce((s, L) => s + nQ(L) * PTS_PER + BONUS + (L.bonusQ ? XQ_PTS : 0), 0);
+// one square per question, plus one for a bonus question (dark if it was never reached)
+const squaresOf = (r, L) => r ? [...r.p, ...(L.bonusQ ? [r.xq === 'ok' ? PTS_PER : 0] : [])] : [];
+const tLimit = () => LEVELS[G.i].time;
+const ptsOf = grade => grade === 'ok' ? PTS_PER : grade === 'near' ? NOTCH : 0;
+// building: find the target setup closest to the student's, then grade each half by how many visible toggles differ
+function gradeBuild(U, target) {
+  if (keyOf(U) === target) return { a: 0, b: 0, T: U };
+  let best = null;
+  for (const T of ALL_STATES) {
+    if (keyOf(T) !== target) continue;
+    const miss = H => H.reduce((n, id) => n + (vis(id, T) && !(vis(id, U) && U[id] === T[id]) ? 1 : 0), 0);
+    const a = miss(HALF_A), b = miss(HALF_B), tot = a + b;
+    if (!best || tot < best.tot || (tot === best.tot && Math.max(a, b) < Math.max(best.a, best.b))) best = { a, b, tot, T };
+  }
+  return best;
+}
+const gradeMiss = n => n === 0 ? 'ok' : n === 1 ? 'near' : '';
+
+/* ---------------- state ---------------- */
+const G = { mode: 'easy', i: 0, phase: 'splash', ans: [null, null], results: [], total: 0, practice: false, build: null };
+
+/* ---------------- canvas helpers ---------------- */
+const cv = $('#cv'), ctx = cv.getContext('2d');
+let W = 0, H = 0, DPR = 1;
+function sizeCanvas(c, g) {
+  const r = c.getBoundingClientRect(), d = Math.min(2, devicePixelRatio || 1);
+  c.width = Math.max(1, Math.round(r.width * d)); c.height = Math.max(1, Math.round(r.height * d));
+  g.setTransform(d, 0, 0, d, 0, 0); return [r.width, r.height];
+}
+function sizeStage() { [W, H] = sizeCanvas(cv, ctx); drawStage(performance.now()); }
+function alpha(col, a) {
+  if (col.startsWith('#')) { const h = col.slice(1), n = parseInt(h.length === 3 ? h.split('').map(x => x + x).join('') : h, 16); return `rgba(${n >> 16 & 255},${n >> 8 & 255},${n & 255},${a})`; }
+  return col;
+}
+function arrow(c, x0, y0, x1, y1, col, wdt = 2, head = 9, both = false) {
+  const a = Math.atan2(y1 - y0, x1 - x0);
+  c.save(); c.strokeStyle = col; c.fillStyle = col; c.lineWidth = wdt; c.lineCap = 'round';
+  const tip = (x, y, ang) => { c.beginPath(); c.moveTo(x, y); c.lineTo(x - Math.cos(ang - .42) * head, y - Math.sin(ang - .42) * head); c.lineTo(x - Math.cos(ang + .42) * head, y - Math.sin(ang + .42) * head); c.closePath(); c.fill(); };
+  c.beginPath(); c.moveTo(x0 + (both ? Math.cos(a) * head * .6 : 0), y0 + (both ? Math.sin(a) * head * .6 : 0)); c.lineTo(x1 - Math.cos(a) * head * .6, y1 - Math.sin(a) * head * .6); c.stroke();
+  tip(x1, y1, a); if (both) tip(x0, y0, a + Math.PI);
+  c.restore();
+}
+function label(c, txt, x, y, col, size = 15, align = 'center', italic = true) {
+  size *= hv() ? 1.3 : 1.2;
+  c.save(); c.fillStyle = col; c.font = `${italic ? 'italic ' : ''}600 ${size}px "STIX Two Text", Georgia, serif`; c.textAlign = align; c.textBaseline = 'middle'; c.fillText(txt, x, y); c.restore();
+}
+// mono caption; "_X" sets the letters X (up to a space) as a subscript, so "ω_UH" reads as ω with UH below
+function small(c, txt, x, y, col, align = 'left', size = 11.5) {
+  size *= TS();
+  c.save(); c.fillStyle = col; c.textBaseline = 'middle';
+  const big = `500 ${size}px "IBM Plex Mono", ui-monospace, monospace`, sub = `500 ${size * .72}px "IBM Plex Mono", ui-monospace, monospace`;
+  const parts = []; txt.split(/(_[A-Za-z]+)/).forEach(p => p && parts.push(p[0] === '_' ? [p.slice(1), true] : [p, false]));
+  const width = parts.reduce((s, [t, b]) => { c.font = b ? sub : big; return s + c.measureText(t).width; }, 0);
+  let cx = align === 'center' ? x - width / 2 : align === 'right' ? x - width : x;
+  c.textAlign = 'left';
+  for (const [t, b] of parts) { c.font = b ? sub : big; c.fillText(t, cx, b ? y + size * .3 : y); cx += c.measureText(t).width; }
+  c.restore();
+}
+function odot(c, x, y, r, col, out = true, lw = 1.2) {
+  c.save(); c.strokeStyle = col; c.fillStyle = col; c.lineWidth = lw; c.beginPath(); c.arc(x, y, r, 0, 7); c.stroke();
+  if (out) { c.beginPath(); c.arc(x, y, r * .3, 0, 7); c.fill(); } else { const d = r * .62; c.beginPath(); c.moveTo(x - d, y - d); c.lineTo(x + d, y + d); c.moveTo(x + d, y - d); c.lineTo(x - d, y + d); c.stroke(); }
+  c.restore();
+}
+
+/* ---------------- motion of fluid elements ----------------
+   phase p = kx − ωt, so the wave moves toward +x. Each function gives the electron and ion displacements
+   [along k, across k on screen, toward the viewer] in units of the amplitude. B: where B0 points.
+   R and L along B0: at a fixed x, electrons turn the way they gyrate (R) or against it (L). */
+const S = Math.sin, C = Math.cos;
+const ANIM = {
+  plasmaOsc: { B: 'off', e: p => [S(p), 0, 0] },
+  langmuir: { B: 'off', e: p => [S(p), 0, 0] },
+  ionAcoustic: { B: 'off', e: p => [S(p), 0, 0], i: p => [S(p), 0, 0] },
+  upperHybrid: { B: 'z', e: p => [S(p), .55 * C(p), 0] },
+  X: { B: 'z', e: p => [.55 * S(p), C(p), 0] },
+  lowerHybrid: { B: 'z', e: p => [.12 * S(p), C(p), 0], i: p => [S(p), 0, 0] },
+  light: { B: 'off', e: p => [0, S(p), 0] },
+  O: { B: 'y', e: p => [0, S(p), 0] },
+  R: { B: 'x', e: p => [0, C(p), -S(p)], helix: 'R' },
+  whistler: { B: 'x', e: p => [0, C(p), -S(p)], helix: 'R' },
+  L: { B: 'x', e: p => [0, C(p), S(p)], helix: 'L' },
+  alfven: { B: 'x', e: p => [0, S(p), 0], i: p => [0, S(p), 0], lines: true },
+  magnetosonic: { B: 'z', e: p => [S(p), 0, 0], i: p => [S(p), 0, 0], frozenB: true },
+};
+// c, W, H: the canvas to draw on (the stage, or Easy mode's motion strip); top: room left for the stage title.
+// mode may also be an ANIM-shaped object (the still "no wave" picture).
+// info: a setup state. Easy mode's setup levels draw the motion on the stage and label the setup under it.
+function drawAnim(mode, t, c, W, H, top = 78, info = null) {
+  const A = typeof mode === 'string' ? ANIM[mode] : mode, H2 = hv();
+  const colE = css('--elec'), colI = css('--ion'), colB = css('--B'), colK = css('--k'), ink3 = css('--ink-3');
+  const foot = info ? 50 : 0, bot = H - 46 - foot, inset = A.helix ? Math.min(150, W * .3) : 0;
+  const x0 = 26, x1 = W - 26 - inset, span = x1 - x0;
+  const nCol = Math.max(12, Math.round(span / 22)), dx = span / (nCol - 1);
+  const lam = span / 2, kk = 2 * Math.PI / lam, om = 2 * Math.PI / 2.6, tt = reduceMotion ? 0.35 : t / 1000;
+  const yE = top + (bot - top) * .3, yI = top + (bot - top) * .74, band = (bot - top) * .13;
+  const ampL = dx * .6, ampT = Math.min(band * .9, 26);
+  const ph = x => kk * (x - x0) - om * tt;
+  // background field
+  if (A.B === 'x') {
+    for (let j = 0; j < 5; j++) {
+      const yb = top + 8 + j * (bot - top - 16) / 4;
+      c.save(); c.strokeStyle = alpha(colB, H2 ? .8 : .35); c.lineWidth = H2 ? 2 : 1.2; c.beginPath();
+      for (let x = x0 - 10; x <= x1 + 10; x += 4) { const yy = yb - (A.lines ? ampT * S(ph(x)) : 0); x === x0 - 10 ? c.moveTo(x, yy) : c.lineTo(x, yy); }
+      c.stroke(); c.restore();
+    }
+    arrow(c, x1 - 50, top - 4, x1 + 6, top - 4, colB, H2 ? 2.4 : 1.6, 8); label(c, 'B₀', x1 - 64, top - 4, colB, 15);
+  } else if (A.B === 'y') {
+    for (let x = x0 + dx / 2; x < x1; x += dx * 2) { c.save(); c.strokeStyle = alpha(colB, H2 ? .7 : .28); c.lineWidth = H2 ? 2 : 1.1; c.beginPath(); c.moveTo(x, top); c.lineTo(x, bot); c.stroke(); c.restore(); }
+    arrow(c, W - 22, top + 40, W - 22, top, colB, H2 ? 2.4 : 1.6, 8); label(c, 'B₀', W - 22, top + 54, colB, 15);
+  } else if (A.B === 'z') {
+    for (let j = 0; j < 3; j++) for (let i = 0; i < nCol - 1; i++) {
+      const xb = x0 + (i + .5) * dx + (A.frozenB ? ampL * S(ph(x0 + (i + .5) * dx)) : 0);
+      const yb = j === 0 ? top + 6 : j === 1 ? (yE + yI) / 2 : bot - 4;
+      odot(c, xb, yb, H2 ? 4.5 : 3.4, alpha(colB, H2 ? .9 : .5), true, H2 ? 1.6 : 1);
+    }
+    small(c, 'B₀ ⊙ out of screen', W - 14, top - 4, colB, 'right');
+  } else small(c, 'B₀ = 0', W - 14, top - 4, ink3, 'right');
+  // species
+  const rows = A.helix ? [0] : [-1, 0, 1];
+  const drawSp = (fn, y0, col, name) => {
+    const frozen = !fn;
+    for (const r of rows) for (let i = 0; i < nCol; i++) {
+      const xb = x0 + i * dx, yb = y0 + r * band * .55;
+      let d = frozen ? [0, 0, 0] : fn(ph(xb));
+      // faint trace of each element's path over one period
+      if (!frozen && i % 2 === 0 && r === rows[0]) {
+        c.save(); c.strokeStyle = alpha(col, H2 ? .45 : .2); c.lineWidth = 1; c.beginPath();
+        for (let q = 0; q <= 24; q++) { const dd = fn(ph(xb) + q / 24 * 2 * Math.PI); const px = xb + dd[0] * ampL, py = yb - dd[1] * ampT + (A.helix ? dd[2] * ampT * .35 : 0); q ? c.lineTo(px, py) : c.moveTo(px, py); }
+        c.stroke(); c.restore();
+      }
+      const depth = A.helix ? d[2] : 0;
+      const px = xb + d[0] * ampL, py = yb - d[1] * ampT + depth * ampT * .35, rad = (H2 ? 4.6 : 3.6) * (1 + .3 * depth);
+      c.save(); c.globalAlpha = frozen ? .35 : (A.helix ? .7 + .3 * depth : 1); c.fillStyle = col; c.beginPath(); c.arc(px, py, rad, 0, 7); c.fill(); c.restore();
+    }
+    const nm = name + (frozen && !A.still ? ' (frozen)' : ''), ly = y0 - band - ampT * .6 - 8;
+    const fs = 11.5 * TS();
+    c.save(); c.font = `500 ${fs}px "IBM Plex Mono", ui-monospace, monospace`; const tw = c.measureText(nm).width;
+    c.fillStyle = alpha(css('--panel'), .85); c.fillRect(x0 - 10, ly - fs / 2 - 3, tw + 8, fs + 6); c.restore();
+    small(c, nm, x0 - 6, ly, col, 'left');
+  };
+  drawSp(A.e, yE, colE, 'electrons');
+  drawSp(A.i, yI, colI, 'ions');
+  // k
+  const ky = H - 22 - foot;
+  arrow(c, x0, ky, x0 + 70, ky, colK, H2 ? 3 : 2, 9); label(c, 'k', x0 + 84, ky, colK, 17);
+  const nar = W < 440;
+  small(c, info && info.B0 === 'on' ? (info.kDir === 'par' ? (nar ? 'along B₀ →' : 'along B₀ · wave moves →') : (nar ? 'across B₀ →' : 'across B₀ · wave moves →')) : 'wave moves →', x0 + 100, ky, ink3);
+  if (info) {
+    const narrow = W < 420, sz = narrow ? 10.5 : 11.5;
+    small(c, fieldInfo(info, narrow), x0 - 6, H - 42, css('--E'), 'left', sz);
+    const sp = 'electrons ' + info.electrons, ip = 'ions ' + info.ions + (info.ions === 'mobile' ? ', ' + info.ionTemp : '');
+    c.save(); c.font = `500 ${sz * TS()}px "IBM Plex Mono", ui-monospace, monospace`; const w1 = c.measureText(sp).width, w2 = c.measureText(' · ').width; c.restore();
+    small(c, sp, x0 - 6, H - 17, colE, 'left', sz);
+    small(c, ' · ', x0 - 6 + w1, H - 17, ink3, 'left', sz);
+    small(c, ip, x0 - 6 + w1 + w2, H - 17, colI, 'left', sz);
+  }
+  // inset: looking along B0 (B0 into the page), one electron element
+  if (A.helix) {
+    const cx = W - 16 - inset / 2, cy = (top + bot) / 2, R = Math.min(inset * .32, 44);
+    c.save(); c.strokeStyle = css('--line-2'); c.lineWidth = 1; c.strokeRect(W - 12 - inset, top, inset - 4, bot - top); c.restore();
+    small(c, inset < 140 ? 'along B₀' : 'looking along B₀', cx, top + 14, ink3, 'center', 10.5);
+    odot(c, cx, cy, 7, colB, false, 1.4);
+    // electron gyration sense: clockwise looking along B0
+    c.save(); c.strokeStyle = alpha(colB, .8); c.setLineDash([3, 4]); c.lineWidth = 1.3; c.beginPath(); c.arc(cx, cy, R + 14, -Math.PI * .85, -Math.PI * .15); c.stroke(); c.restore();
+    const ea = -Math.PI * .15; arrow(c, cx + (R + 14) * C(ea - .25), cy + (R + 14) * S(ea - .25), cx + (R + 14) * C(ea), cy + (R + 14) * S(ea), alpha(colB, .9), 1.3, 7);
+    small(c, 'e⁻ gyration', cx, cy - R - 30, colB, 'center', 10.5);
+    // the fluid electron at x = x0: screen = (z, y)
+    const d = A.e(ph(x0));
+    c.save(); c.strokeStyle = alpha(colE, .3); c.beginPath(); c.arc(cx, cy, R, 0, 7); c.stroke(); c.restore();
+    c.save(); c.fillStyle = colE; c.beginPath(); c.arc(cx + d[2] * R, cy - d[1] * R, H2 ? 7 : 6, 0, 7); c.fill(); c.restore();
+    small(c, 'fluid e⁻', cx, cy + R + 22, colE, 'center', 10.5);
+  }
+}
+
+/* ---------------- setup diagram ---------------- */
+function drawSetup(s) {
+  const c = ctx, H2 = hv(), colB = css('--B'), colK = css('--k'), colE = css('--E'), ink2 = css('--ink-2'), ink3 = css('--ink-3');
+  const top = 84, bot = H - 52, midY = (top + bot) / 2, x0 = Math.max(40, W * .12), x1 = W - Math.max(40, W * .12);
+  const lw = H2 ? 2.6 : 1.6;
+  // B0
+  if (s.B0 === 'on' && s.kDir === 'par') {
+    for (let j = -2; j <= 2; j++) { const y = midY + j * (bot - top) * .2; c.save(); c.strokeStyle = alpha(colB, H2 ? .8 : .35); c.lineWidth = H2 ? 2 : 1.2; c.beginPath(); c.moveTo(x0 - 20, y); c.lineTo(x1 + 20, y); c.stroke(); c.restore(); arrow(c, x1, y, x1 + 20, y, alpha(colB, H2 ? .9 : .6), H2 ? 2 : 1.2, 7); }
+    label(c, 'B₀', x1 + 10, top - 4, colB, 17);
+  } else if (s.B0 === 'on') {
+    for (let j = -3; j <= 3; j++) { const x = W / 2 + j * (x1 - x0) / 6; c.save(); c.strokeStyle = alpha(colB, H2 ? .8 : .35); c.lineWidth = H2 ? 2 : 1.2; c.beginPath(); c.moveTo(x, bot); c.lineTo(x, top); c.stroke(); c.restore(); arrow(c, x, top + 20, x, top, alpha(colB, H2 ? .9 : .6), H2 ? 2 : 1.2, 7); }
+    label(c, 'B₀', x1 + 22, top + 6, colB, 17);
+  } else small(c, 'B₀ = 0', x0, top + 4, ink3, 'left', 12.5);
+  // k
+  arrow(c, x0, bot - 6, x0 + (x1 - x0) * .38, bot - 6, colK, H2 ? 3.4 : 2.4, 11); label(c, 'k', x0 + (x1 - x0) * .38 + 16, bot - 6, colK, 19);
+  // E1
+  const ex = W / 2, ey = midY - 8, L = Math.min(64, (bot - top) * .28);
+  if (s.character === 'es') { arrow(c, ex - L, ey, ex + L, ey, colE, H2 ? 3.4 : 2.4, 11, true); label(c, 'E₁ ∥ k', ex, ey - 22, colE, 16); small(c, 'electrostatic: B₁ = 0', ex, ey + 26, ink2, 'center'); }
+  else if (s.B0 === 'off') { arrow(c, ex, ey + L * .8, ex, ey - L * .8, colE, H2 ? 3.4 : 2.4, 11, true); label(c, 'E₁ ⊥ k', ex + 52, ey, colE, 16); small(c, 'electromagnetic', ex, ey + L * .8 + 22, ink2, 'center'); }
+  else if (s.kDir === 'perp' && s.polarization === 'Epar') { arrow(c, ex, ey + L * .8, ex, ey - L * .8, colE, H2 ? 3.4 : 2.4, 11, true); label(c, 'E₁ ∥ B₀', ex + 58, ey, colE, 16); }
+  else if (s.kDir === 'perp') {
+    c.save(); c.strokeStyle = colE; c.lineWidth = H2 ? 3 : 2; c.beginPath(); c.ellipse(ex, ey, L, L * .32, 0, 0, Math.PI * 1.75); c.stroke(); c.restore();
+    const a = Math.PI * 1.75; arrow(c, ex + L * C(a - .2), ey + L * .32 * S(a - .2), ex + L * C(a), ey + L * .32 * S(a), colE, H2 ? 3 : 2, 10);
+    label(c, 'E₁ ⊥ B₀', ex, ey - L * .32 - 18, colE, 16); small(c, 'in the plane of k and B₀ × k', ex, ey + L * .32 + 20, ink2, 'center');
+  } else {
+    // circular polarization about k ∥ B0, drawn in perspective: R turns with the electrons
+    const r = L * .8, cw = s.polarization === 'R';
+    c.save(); c.strokeStyle = colE; c.lineWidth = H2 ? 3 : 2; c.beginPath(); c.ellipse(ex, ey, r * .35, r, 0, 0, 2 * Math.PI); c.stroke(); c.restore();
+    const a0 = cw ? -Math.PI / 2 + .9 : Math.PI / 2 - .9, a1 = cw ? -Math.PI / 2 + .5 : Math.PI / 2 - .5;
+    arrow(c, ex + r * .35 * C(a0), ey + r * S(a0), ex + r * .35 * C(a1), ey + r * S(a1), colE, H2 ? 3 : 2, 10);
+    label(c, cw ? 'E₁ turns with e⁻ (R)' : 'E₁ turns with ions (L)', ex, ey - r - 18, colE, 15);
+  }
+  if (s.B0 === 'on' && s.character === 'em' && vis('branch', s)) small(c, s.branch === 'low' ? (s.kDir === 'par' ? 'branch: ω < Ωₑ' : 'branch: ω_L < ω < ω_UH') : 'branch: ω > ω_R', W / 2, top + 6, ink2, 'center', 12);
+  // species badges
+  const sp = [['electrons ' + s.electrons, css('--elec')], ['ions ' + s.ions + (s.ions === 'mobile' ? ', ' + s.ionTemp : ''), css('--ion')]];
+  small(c, sp[0][0], W - 16, H - 38, sp[0][1], 'right', 12); small(c, sp[1][0], W - 16, H - 16, sp[1][1], 'right', 12);
+}
+
+/* ---------------- dispersion plot (cold, ωpe = c = 1, Ωe = 0.5) ---------------- */
+const We0 = 0.5, wR0 = (We0 + Math.sqrt(We0 * We0 + 4)) / 2, wL0 = (-We0 + Math.sqrt(We0 * We0 + 4)) / 2, wUH0 = Math.sqrt(1 + We0 * We0);
+const K2 = {
+  R: w => w * w - w / (w - We0), L: w => w * w - w / (w + We0),
+  X: w => w * w - (w * w - 1) / (w * w - wUH0 * wUH0), light: w => w * w - 1,
+};
+const PLOTS = {
+  whistler: { br: [['R', 0.004, We0 - 1e-4]], lines: [[We0, 'Ωₑ']] },
+  X: { br: [['X', wL0 + 1e-4, wUH0 - 1e-4], ['X', wR0 + 1e-4, 3.2]], lines: [[wL0, 'ω_L'], [wUH0, 'ω_UH'], [wR0, 'ω_R']] },
+  light: { br: [['light', 1 + 1e-5, 3.2]], lines: [[1, 'ωₚₑ']] },
+  L: { br: [['L', wL0 + 1e-5, 3.2]], lines: [[wL0, 'ω_L'], [1, 'ωₚₑ']] },
+};
+function drawPlot(id) {
+  const c = ctx, P = PLOTS[id], H2 = hv(), ink3 = css('--ink-3'), ink2 = css('--ink-2'), col = css('--plot'), line = css('--line-2');
+  const l = 64, r = W - 76, t = 84, b = H - 52, kmax = 3, wmax = 2.6;
+  const X = kv => l + kv / kmax * (r - l), Y = wv => b - wv / wmax * (b - t);
+  c.save(); c.strokeStyle = line; c.lineWidth = 1; c.beginPath(); c.moveTo(l, t); c.lineTo(l, b); c.lineTo(r, b); c.stroke(); c.restore();
+  for (let i = 1; i <= 3; i++) small(c, String(i), X(i), b + 14, ink3, 'center', 11);
+  for (let i = 1; i <= 2; i++) small(c, String(i), l - 10, Y(i), ink3, 'right', 11);
+  small(c, 'ck/ωₚₑ', r, b + 36, ink3, 'right', 11); small(c, 'ω/ωₚₑ', l - 6, t - 14, ink3, 'left', 11);
+  // light line
+  c.save(); c.strokeStyle = alpha(ink3, .9); c.setLineDash([5, 5]); c.beginPath(); c.moveTo(X(0), Y(0)); c.lineTo(X(Math.min(kmax, wmax)), Y(Math.min(kmax, wmax))); c.stroke(); c.restore();
+  // reference lines
+  for (const [wv, lab] of P.lines) {
+    c.save(); c.strokeStyle = alpha(ink2, .7); c.setLineDash([2, 4]); c.beginPath(); c.moveTo(l, Y(wv)); c.lineTo(r, Y(wv)); c.stroke(); c.restore();
+    small(c, lab, r + 6, Y(wv), ink2, 'left', 11.5);
+  }
+  // branches
+  for (const [f, w0, w1] of P.br) {
+    c.save(); c.strokeStyle = col; c.lineWidth = H2 ? 4 : 2.8; c.lineJoin = 'round'; c.beginPath(); let started = false;
+    const n = 600;
+    for (let i = 0; i <= n; i++) {
+      const wv = w0 + (w1 - w0) * (i / n) ** (f === 'R' ? 0.5 : 1), k2 = K2[f](wv);
+      if (!(k2 >= 0)) { started = false; continue; }
+      const kv = Math.sqrt(k2); if (kv > kmax || wv > wmax) { started = false; continue; }
+      if (!started) { c.moveTo(X(kv), Y(wv)); started = true; } else c.lineTo(X(kv), Y(wv));
+    }
+    c.stroke(); c.restore();
+  }
+}
+
+/* ---------------- stage ---------------- */
+let rafId = 0;
+function stageMode() {
+  const L = LEVELS[G.i]; if (!L) return null;
+  if (G.phase === 'reveal') {
+    if (L.vis.kind === 'plot') return { kind: 'plot', id: L.vis.id };
+    const mine = L.build && G.revView === 'mine', key = mine ? keyOf(G.build) : L.ans;
+    if (L.build && key === 'none') return { kind: 'setup', state: mine ? G.build : (G.results[G.i].T || G.build) };
+    if (!L.build && L.vis.kind === 'setup' && ANIM[key]) return { kind: 'anim', mode: hintAnim(L), info: L.vis.state, name: key };
+    return ANIM[key] ? { kind: 'anim', mode: key } : (L.vis.kind === 'setup' ? L.vis : { kind: 'none' });
+  }
+  if (L.vis.kind === 'build') return { kind: 'setup', state: G.build };
+  if (G.mode === 'easy' && L.vis.kind === 'setup') return { kind: 'anim', mode: hintAnim(L), info: L.vis.state };
+  return L.vis;
+}
+function drawStage(now) {
+  if (!W) return;
+  ctx.clearRect(0, 0, W, H);
+  const v = stageMode(); if (!v) return;
+  if (v.kind === 'anim') drawAnim(v.mode, now, ctx, W, H, 78, v.info || null);
+  else if (v.kind === 'setup') drawSetup(v.state);
+  else if (v.kind === 'plot') drawPlot(v.id);
+  else if (v.kind === 'none') { label(ctx, 'no wave', W / 2, H / 2, css('--ink-3'), 22); }
+}
+/* Easy mode's help: while answering, a strip under the stage plays the answer's fluid-element motion.
+   Hidden when the stage already shows that motion (motion levels, and every level after locking in).
+   A "no wave" answer shows the plasma sitting still. */
+const mcv = $('#mcv'), mctx = mcv.getContext('2d');
+let mW = 0, mH = 0;
+// the answer's motion, with B₀ drawn the way the level's setup has it (a "no wave" answer sits still)
+function hintAnim(L) {
+  const s = L.vis.state;
+  if (!s) return ANIM[L.ans] ? L.ans : { B: 'off', still: true };
+  const base = ANIM[L.ans] || { still: true };
+  const B = s.B0 !== 'on' ? 'off' : s.kDir === 'par' ? 'x' : (base.B === 'y' || base.B === 'z' ? base.B : (s.polarization === 'Epar' && s.character === 'em' ? 'y' : 'z'));
+  return B === base.B ? (ANIM[L.ans] ? L.ans : base) : { ...base, B };
+}
+// the separate strip is only for Easy levels whose stage holds an equation, plot or story
+function motionMode() {
+  const L = LEVELS[G.i];
+  if (!L || G.mode !== 'easy' || G.phase !== 'predict' || L.vis.kind === 'anim' || L.vis.kind === 'setup') return null;
+  return hintAnim(L);
+}
+function sizeMotion() { [mW, mH] = sizeCanvas(mcv, mctx); drawMotion(performance.now()); }
+function drawMotion(now) {
+  const m = motionMode(); if (!m || !mW) return;
+  mctx.clearRect(0, 0, mW, mH);
+  drawAnim(m, now, mctx, mW, mH, 34);
+}
+function renderMotion() {
+  const m = motionMode();
+  $('#motion').hidden = !m;
+  if (!m) return;
+  $('#motionCap').innerHTML = 'How this plasma’s electron and ion fluid elements move. Use it as a hint.';
+  sizeMotion();
+}
+function loop(now) { drawStage(now); drawMotion(now); rafId = requestAnimationFrame(loop); }
+function ensureLoop() {
+  cancelAnimationFrame(rafId);
+  const v = stageMode(), m = motionMode();
+  if (((v && v.kind === 'anim') || (m && !m.still)) && !reduceMotion) rafId = requestAnimationFrame(loop);
+  else { drawStage(performance.now()); drawMotion(performance.now()); }
+}
+function renderOverlay() {
+  const L = LEVELS[G.i], ov = $('#overlay'), v = L.vis;
+  // after the answer, equation and story levels show the wave's motion instead
+  ov.hidden = !(v.kind === 'eq' || v.kind === 'story') || (G.phase === 'reveal' && !!ANIM[L.ans]);
+  ov.innerHTML = v.kind === 'eq' ? `<div class="eqbig">${v.lab ? `<div class="eqlab">${v.lab}</div>` : ''}<div class="eqline">${v.html}</div></div>` : v.kind === 'story' ? `<div class="story">${v.html}</div>` : '';
+  fitEq();
+}
+// keep an equation on one line: shrink it until it fits the stage
+function fitEq() {
+  const ov = $('#overlay'), eq = ov.querySelector('.eqbig');
+  if (!eq || ov.hidden) return;
+  eq.style.fontSize = '';
+  const room = ov.clientWidth - 44, line = eq.querySelector('.eqline');
+  if (room > 0 && line.scrollWidth > room) eq.style.fontSize = Math.max(11, parseFloat(getComputedStyle(eq).fontSize) * room / line.scrollWidth) + 'px';
+}
+function renderCaption() {
+  const v = stageMode(), cap = $('#stageCap'), L = LEVELS[G.i];
+  const sw = (cl, t) => `<span><i class="sw" style="background:var(${cl})"></i>${t}</span>`;
+  if (!v) { cap.innerHTML = ''; return; }
+  if (v.kind === 'anim' && v.info) cap.innerHTML = (v.name ? `<span>${MODES[v.name].name}:</span>` : '') + sw('--elec', 'electron fluid') + sw('--ion', 'ion fluid') + sw('--k', 'k') + sw('--E', 'E₁') + sw('--B', 'B₀') + (v.name ? '<span>faint loops: each element’s path</span>' : '<span>faint loops: each element’s path. The motion is a hint.</span>');
+  else if (v.kind === 'anim') cap.innerHTML = (G.phase === 'reveal' ? `<span>${MODES[v.mode].name}${L.build && keyOf(G.build) !== L.ans ? (G.revView === 'mine' ? ' (what your setup makes)' : ' (the target)') : ''}:</span>` : '') + sw('--elec', 'electron fluid') + sw('--ion', 'ion fluid') + '<span>faint loops: each element’s path</span>';
+  else if (v.kind === 'plot') cap.innerHTML = sw('--plot', 'ω(k), cold plasma') + '<span>dashed diagonal: ω = ck</span><span>Ωₑ = 0.5 ωₚₑ</span>';
+  else if (v.kind === 'setup') cap.innerHTML = L.build ? (G.phase === 'reveal' ? (G.revView === 'mine' ? '<span>Your setup: no wave</span>' : '<span>A setup with no wave</span>') : '<span>Your setup, drawn live. The name stays hidden until you lock in.</span>') : sw('--k', 'wave vector k') + sw('--E', 'wave field E₁') + sw('--B', 'background B₀');
+  else cap.innerHTML = '';
+}
+
+/* ---------------- given card ---------------- */
+const TG_LABEL = {
+  B0: v => v === 'on' ? '<b>B₀</b> on' : '<b>B₀</b> off', kDir: v => v === 'par' ? '<b>k ∥ B₀</b>' : '<b>k ⊥ B₀</b>',
+  character: v => v === 'es' ? '<b>Electrostatic</b>' : '<b>Electromagnetic</b>',
+  polarization: v => ({ Epar: '<b>E₁ ∥ B₀</b>', Eperp: '<b>E₁ ⊥ B₀</b>', R: '<b>Right-hand</b> circular', L: '<b>Left-hand</b> circular' })[v],
+  ions: v => `Ions <b>${v}</b>`, electrons: v => `Electrons <b>${v}</b>`, ionTemp: v => `Ions <b>${v}</b>`,
+  branch: (v, s) => s.kDir === 'par' ? (v === 'low' ? 'Branch <b>ω &lt; Ωₑ</b>' : 'Branch <b>ω &gt; ω<sub>R</sub></b>') : (v === 'low' ? 'Branch <b>ω<sub>L</sub> &lt; ω &lt; ω<sub>UH</sub></b>' : 'Branch <b>ω &gt; ω<sub>R</sub></b>'),
+};
+// the setup in words, shared by the stage labels and the Given card. "_X" marks a subscript.
+function fieldInfo(s, narrow = false) {
+  let t = s.character === 'es' ? 'E₁ ∥ k, electrostatic'
+    : s.B0 === 'off' ? 'E₁ ⊥ k, electromagnetic'
+    : s.kDir === 'perp' ? (s.polarization === 'Epar' ? 'E₁ ∥ B₀, electromagnetic' : 'E₁ ⊥ B₀, electromagnetic')
+    : (s.polarization === 'R' ? 'E₁ right-hand circular' : 'E₁ left-hand circular');
+  if (vis('branch', s)) t += ' · ' + (s.branch === 'high' ? 'ω > ω_R' : s.kDir === 'par' ? 'ω < Ω_e' : 'ω_L < ω < ω_UH');
+  return narrow ? t.replace('electromagnetic', 'EM').replace('electrostatic', 'ES') : t;
+}
+const subHtml = t => t.replace(/_([A-Za-z]+)/g, '<sub>$1</sub>');
+function setupRows(s) {
+  const row = (col, key, val) => `<li><span class="k"><i class="sw" style="background:var(${col})"></i>${key}</span><span class="val">${val}</span></li>`;
+  return '<ul class="setup">' +
+    row('--B', 'B₀', s.B0 === 'on' ? 'on' : 'off') +
+    row('--k', 'k', s.B0 === 'on' ? (s.kDir === 'par' ? 'along B₀ (k ∥ B₀)' : 'across B₀ (k ⊥ B₀)') : 'any direction (no B₀)') +
+    row('--E', 'E₁', subHtml(fieldInfo(s).replace('E₁ ', ''))) +
+    row('--elec', 'electrons', s.electrons) +
+    row('--ion', 'ions', s.ions + (s.ions === 'mobile' ? ', ' + s.ionTemp : '')) + '</ul>';
+}
+function chipsFor(s) { return '<div class="chips">' + TOGGLES.filter(t => vis(t.id, s)).map(t => `<span class="chip">${TG_LABEL[t.id](s[t.id], s)}</span>`).join('') + '</div>'; }
+function renderGiven(L) {
+  const g = $('#given');
+  if (L.build) {
+    $('#givenTitle').textContent = 'Target';
+    g.innerHTML = `<p style="margin:0 0 6px;color:var(--ink);font-size:16px;font-weight:600">${MODES[L.ans].name}</p><p style="margin:0">${BUILD_CLUE[L.ans]}</p>`;
+    return;
+  }
+  $('#givenTitle').textContent = L.vis.kind === 'setup' ? 'Given · the setup in the picture' : 'Given';
+  if (L.vis.kind === 'setup') g.innerHTML = setupRows(L.vis.state) + '<p>Each colour matches its label in the picture. Frozen ions means ω far above the ion frequencies.</p>';
+  else g.innerHTML = `<p style="margin:0;color:var(--ink-2);font-size:14px">${L.given || ''}</p>`;
+}
+
+/* ---------------- calls ---------------- */
+function renderCalls() {
+  const L = LEVELS[G.i], box = $('#calls');
+  if (L.build) { renderBuild(); return; }
+  // Hard levels show question 2 only after question 1 is locked in
+  box.innerHTML = L.calls.map((cl, ci) => `<div class="call" data-ci="${ci}"${ci > G.step ? ' hidden' : ''}><div class="q"><span class="n">Question ${ci + 1}</span><p>${cl.q}</p></div>
+    <div class="opts${cl.opts.some(o => o[0].length > 70) ? ' wide' : ''}">${cl.opts.map((o, oi) => `<button class="opt" data-oi="${oi}" aria-pressed="false"><span class="dot"></span><span>${o[0]}</span></button>`).join('')}</div></div>`).join('');
+  box.querySelectorAll('.call').forEach(el => {
+    const ci = +el.dataset.ci;
+    el.querySelectorAll('.opt').forEach(b => b.addEventListener('click', () => {
+      if (G.phase !== 'predict' || ci < G.step) return;
+      G.ans[ci] = +b.dataset.oi;
+      el.querySelectorAll('.opt').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+      updateLock();
+    }));
+  });
+}
+function renderBuild() {
+  const box = $('#calls'), s = G.build, locked = G.phase !== 'predict';
+  const r = locked ? G.results[G.i] : null;
+  const group = (H, n, title) => `<div class="call"><div class="q"><span class="n">Question ${n}</span><p>${title}</p></div><div class="tg">` +
+    H.filter(id => vis(id, s)).map(id => {
+      const t = TG[id], miss = r && r.T && vis(id, r.T) && s[id] !== r.T[id];
+      return `<span class="lab${miss ? ' miss' : ''}">${t.label}</span><div class="seg" role="group" aria-label="${t.label}">` +
+        t.options(s).map(([v, lab]) => `<button data-id="${id}" data-v="${v}" aria-pressed="${s[id] === v}"${locked ? ' disabled' : ''}>${lab}</button>`).join('') + '</div>';
+    }).join('') + '</div></div>';
+  box.innerHTML = group(HALF_A, 1, 'Field and wave') + group(HALF_B, 2, 'Species');
+  box.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => {
+    if (G.phase !== 'predict') return;
+    G.build = norm({ ...G.build, [b.dataset.id]: b.dataset.v });
+    renderBuild(); drawStage(performance.now());
+    const f = box.querySelector(`button[data-id="${b.dataset.id}"][data-v="${b.dataset.v}"]`); f && f.focus();
+  }));
+}
+function updateLock() {
+  const L = LEVELS[G.i];
+  const ok = L.build || L.calls.every((_, ci) => ci > G.step || G.ans[ci] !== null);
+  $('#lockBtn').disabled = !ok || G.phase !== 'predict';
+  if (G.phase === 'predict' && !G.extra) $('#lockHint').textContent = ok ? '' : `Answer question ${G.ans.findIndex((a, ci) => ci <= G.step && ci < L.calls.length && a === null) + 1}.`;
+}
+
+/* ---------------- flow ---------------- */
+let clockTimer = 0;
+function gradeCol(p) { return p >= PTS_PER ? css('--good') : p >= NOTCH ? css('--near') : css('--miss'); }
+function gradeSq(p) { return p >= PTS_PER ? '🟩' : p >= NOTCH ? '🟧' : '⬛'; }
+function renderPips() {
+  $('#pips').innerHTML = LEVELS.map((L, i) => {
+    const r = G.results[i], cls = i === G.i && G.phase !== 'end' && G.phase !== 'splash' ? 'pip cur' : 'pip';
+    const sep = L.tier && i > 0 && LEVELS[i - 1].tier !== L.tier ? '<span class="pip-sep"></span>' : '';
+    const fill = squaresOf(r, L).map(p => `<i style="background:${gradeCol(p)}"></i>`).join('');
+    return `${sep}<span class="${cls}" title="Level ${i + 1}">${fill}</span>`;
+  }).join('');
+  $('#score').textContent = G.total; $('#maxScore').textContent = LEVELS.length ? maxTotal() : 0;
+}
+function startRun(mode) {
+  G.mode = mode; LEVELS = buildRun(mode); G.results = []; G.total = 0;
+  G.practice = !!doneToday(mode);
+  startLevel(0);
+}
+function startLevel(i) {
+  G.i = i; G.phase = 'predict'; G.ans = [null, null]; G.step = 0;
+  const L = LEVELS[i];
+  G.build = L.build ? norm({}) : null; G.revView = 'target'; G.xans = null;
+  $('#viewSw').hidden = true; $('#lockBtn').textContent = 'Lock in';
+  $('#splash').hidden = true; $('#end').hidden = true; $('#board').hidden = false; $('#reveal').hidden = true;
+  const tierTxt = L.tier ? ` · Tier ${L.tier}` : '';
+  $('#lvlTag').textContent = `${G.mode === 'hard' ? 'Hard' : 'Easy'}${G.practice ? ' practice' : ''}${tierTxt} · Level ${i + 1} of ${LEVELS.length}`;
+  $('#lvlName').textContent = L.title;
+  $('#nextBtn').hidden = true; $('#lockBtn').hidden = false;
+  renderGiven(L); renderCalls(); renderPips(); renderOverlay(); renderCaption(); renderMotion();
+  sizeStage(); ensureLoop(); updateLock();
+  clearInterval(clockTimer);
+  G.extra = false; G.tFull = tLimit(); G.deadline = performance.now() + tLimit() * 1000; G.tLeft = tLimit();
+  tickClock(); $('#moreBtn').hidden = true;
+  clockTimer = setInterval(() => {
+    G.tLeft = Math.max(0, (G.deadline - performance.now()) / 1000); tickClock();
+    $('#moreBtn').hidden = G.extra || G.tLeft > EXTRA_AT || G.tLeft <= 0;
+    if (G.tLeft <= 0) lockIn(true);
+  }, 100);
+  $('#board').scrollIntoView({ block: 'nearest', behavior: reduceMotion ? 'auto' : 'smooth' });
+}
+function tickClock() {
+  const f = Math.min(1, G.tLeft / (G.tFull || tLimit())), arc = $('#clockArc');
+  arc.style.strokeDashoffset = String(106.8 * (1 - f));
+  arc.style.stroke = G.tLeft > 10 ? css('--ink') : G.tLeft > 5 ? css('--k') : css('--bad');
+  $('#clockN').textContent = Math.ceil(G.tLeft);
+}
+// lock question 1 without grading it, then show question 2 (same clock)
+function nextStep() {
+  const L = LEVELS[G.i], el = $('.call[data-ci="0"]');
+  G.step = 1;
+  el.querySelectorAll('.opt').forEach(b => b.disabled = true);
+  const q2 = $('.call[data-ci="1"]'); q2.hidden = false;
+  updateLock();
+  q2.querySelector('.opt').focus({ preventScroll: true });
+}
+function lockIn(timeout) {
+  if (G.phase !== 'predict') return;
+  const L0 = LEVELS[G.i];
+  if (!timeout && !L0.build && G.step + 1 < L0.calls.length) { nextStep(); return; }
+  $$('.call[data-ci]').forEach(el => el.hidden = false);
+  clearInterval(clockTimer);
+  const L = LEVELS[G.i], r = { tLeft: G.tLeft, extra: G.extra };
+  if (L.build) {
+    const g = gradeBuild(G.build, L.ans);
+    r.g = [gradeMiss(g.a), gradeMiss(g.b)]; r.T = g.T; r.made = keyOf(G.build);
+  } else r.g = L.calls.map((cl, ci) => G.ans[ci] === null ? '' : cl.opts[G.ans[ci]][1]);
+  r.p = r.g.map(ptsOf);
+  const got = r.p.reduce((a, b) => a + b, 0);
+  r.bonus = !G.extra && r.p.every(p => p >= PTS_PER) ? Math.round(BONUS * G.tLeft / tLimit()) : 0;
+  r.penalty = G.extra ? Math.min(EXTRA_PENALTY, got) : 0;
+  r.total = got + r.bonus - r.penalty;
+  r.timeout = timeout;
+  G.results[G.i] = r;
+  if (L.bonusQ && r.g[0] === 'ok') { startBonus(); return; }
+  G.phase = 'reveal';
+  showReveal();
+}
+// after naming the wave right: lock the first answers in place and ask the bonus question, untimed
+function startBonus() {
+  const L = LEVELS[G.i];
+  G.phase = 'bonus'; G.xans = null;
+  markCalls(L);
+  $('#moreBtn').hidden = true; $('#lockHint').textContent = '';
+  const box = $('#calls'), q = L.bonusQ;
+  box.insertAdjacentHTML('beforeend', `<div class="call bonus" data-bonus="1"><div class="q"><span class="n">Correct! Bonus +${XQ_PTS}</span><p>${q.q}</p></div>
+    <div class="opts${q.opts.some(o => o[0].length > 70) ? ' wide' : ''}">${q.opts.map((o, oi) => `<button class="opt" data-oi="${oi}" aria-pressed="false"><span class="dot"></span><span>${o[0]}</span></button>`).join('')}</div></div>`);
+  const el = box.querySelector('.call.bonus');
+  el.querySelectorAll('.opt').forEach(b => b.addEventListener('click', () => {
+    if (G.phase !== 'bonus') return;
+    G.xans = +b.dataset.oi;
+    el.querySelectorAll('.opt').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    $('#lockBtn').disabled = false;
+  }));
+  $('#lockBtn').textContent = 'Lock in bonus'; $('#lockBtn').disabled = true;
+  $('#clockN').textContent = '✓';
+  el.querySelector('.opt').focus({ preventScroll: true });
+}
+function lockBonus() {
+  if (G.phase !== 'bonus' || G.xans === null) return;
+  const L = LEVELS[G.i], r = G.results[G.i];
+  r.xq = L.bonusQ.opts[G.xans][1];
+  if (r.xq === 'ok') r.total += XQ_PTS;
+  G.phase = 'reveal';
+  showReveal();
+}
+function markCalls(L) {
+  L.calls.forEach((cl, ci) => {
+    const el = $(`.call[data-ci="${ci}"]`);
+    el.querySelectorAll('.opt').forEach((b, oi) => {
+      b.disabled = true; const g = cl.opts[oi][1], picked = G.ans[ci] === oi;
+      b.classList.toggle('ok', g === 'ok'); b.classList.toggle('nearpick', picked && g === 'near'); b.classList.toggle('wrong', picked && g === '');
+      b.classList.toggle('dim', g !== 'ok' && !picked);
+    });
+  });
+}
+function showReveal() {
+  const L = LEVELS[G.i], r = G.results[G.i];
+  G.total = G.results.reduce((s, x) => s + (x ? x.total : 0), 0);
+  $('#lockBtn').hidden = true; $('#moreBtn').hidden = true;
+  $('#lockHint').textContent = r.timeout ? 'Time.' : '';
+  if (L.build) renderBuild();
+  else markCalls(L);
+  const bel = $('.call.bonus');
+  if (bel) bel.querySelectorAll('.opt').forEach((b, oi) => {
+    b.disabled = true; const g = L.bonusQ.opts[oi][1], picked = G.xans === oi;
+    b.classList.toggle('ok', g === 'ok'); b.classList.toggle('wrong', picked && g !== 'ok'); b.classList.toggle('dim', g !== 'ok' && !picked);
+  });
+  $('#viewSw').hidden = !(L.build && r.made !== L.ans);
+  $('#viewSw').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === G.revView)));
+  const got = r.p.reduce((a, b) => a + b, 0);
+  $('#revTitle').textContent = r.p.length === 1 ? (got === PTS_PER ? 'Right' : got >= NOTCH ? 'Close' : 'Not this time')
+    : got === 200 ? 'Both answers right' : got >= 140 ? 'Close' : got >= 100 ? 'Half right' : 'Not this time';
+  $('#revPts').textContent = `+${r.total}` + (r.bonus ? ` (${r.bonus} speed)` : '') + (r.xq === 'ok' ? ` (${XQ_PTS} bonus)` : '') + (r.extra ? ` (−${EXTRA_PENALTY} extra time)` : '');
+  let why;
+  if (L.build) {
+    const made = r.made;
+    why = made === 'none' ? `Your setup makes no wave at all. ${L.ans === 'none' ? '' : noneReason(G.build)}` : `Your setup makes: <b>${MODES[made].name}</b>.`;
+    if (made !== L.ans) {
+      const halves = ['Field and wave', 'Species'].map((h, i) => `${h}: ${r.g[i] === 'ok' ? 'right' : r.g[i] === 'near' ? 'one toggle off' : 'more than one toggle off'}`).join('. ');
+      why += ` ${halves}. Toggles in red differ from the nearest correct setup.`;
+    }
+    if (L.ans === 'none' && made === 'none') why += ' ' + noneReason(G.build);
+  } else {
+    why = L.why;
+    const pickedMode = L.calls[0].modeCall && G.ans[0] !== null ? L.calls[0].opts[G.ans[0]] : null;
+    if (pickedMode && pickedMode[1] === 'near') why = `<b>Near miss:</b> ${nearNote(L.ans, pickedMode[2])} ` + why;
+    if (r.xq !== undefined) why += `<br><br><b>Bonus${r.xq === 'ok' ? ', right' : ', not quite'}:</b> ${L.bonusQ.why}`;
+  }
+  $('#revWhy').innerHTML = why;
+  const MM = MODES[L.ans];
+  const mk = L.ans;
+  $('#revMode').innerHTML = mk === 'none'
+    ? `<span class="nm">No wave</span><div class="recipe">${L.build ? '<b>One way:</b> ' + MM.recipe : ''}</div>`
+    : `<span class="nm">${MM.name}</span><div class="eq">${EQ[mk]}</div><ul>${MM.facts.map(f => `<li>${f}</li>`).join('')}</ul><div class="recipe"><b>Recipe:</b> ${MM.recipe}</div>`;
+  $('#reveal').hidden = false;
+  $('#nextBtn').hidden = false; $('#nextBtn').textContent = G.i + 1 < LEVELS.length ? 'Next level' : 'See final score';
+  renderPips(); renderOverlay(); renderCaption(); renderMotion(); ensureLoop();
+  $('#nextBtn').focus({ preventScroll: true });
+}
+
+/* ---------------- end, streak and sharing ---------------- */
+const RANKS = [[0.9, 'Walking dielectric tensor'], [0.75, 'Whistler whisperer'], [0.55, 'Above cutoff'], [0.35, 'Evanescent, but growing'], [0, 'Plasma oscillation: going nowhere yet']];
+function shareText() {
+  const sqs = (r, L) => squaresOf(r, L).map(gradeSq).join('');
+  let rows;
+  if (G.mode === 'easy') rows = [1, 2, 3].map(t => `T${t} ` + LEVELS.map((L, i) => L.tier === t ? sqs(G.results[i], L) : null).filter(x => x !== null).join(' '));
+  else { rows = []; for (let i = 0; i < LEVELS.length; i += 5) rows.push(LEVELS.slice(i, i + 5).map((L, j) => sqs(G.results[i + j], L)).join(' ')); }
+  return `Wavedle #${DAYNUM} ${G.mode === 'hard' ? 'Hard' : 'Easy'} ${G.total}/${maxTotal()}${G.practice ? ' (practice)' : ''}\n${rows.join('\n')}`;
+}
+const store = { get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
+const doneToday = mode => store.get(`wavedle-done-${DAY}-${mode}`);
+function streak() {
+  const days = new Set(store.get('wavedle-days') || []);
+  let n = 0, d = new Date(DAY + 'T12:00:00Z');
+  while (days.has(d.toISOString().slice(0, 10))) { n++; d = new Date(d.getTime() - 864e5); }
+  return n;
+}
+function showEnd() {
+  G.phase = 'end'; clearInterval(clockTimer); cancelAnimationFrame(rafId);
+  $('#board').hidden = true; $('#end').hidden = false;
+  const official = !G.practice;
+  if (official) {
+    store.set(`wavedle-done-${DAY}-${G.mode}`, { score: G.total, max: maxTotal(), grid: shareText() });
+    const days = new Set(store.get('wavedle-days') || []); days.add(DAY); store.set('wavedle-days', [...days].slice(-400));
+  }
+  $('#endMode').textContent = `Final score · Wavedle #${DAYNUM} · ${G.mode === 'hard' ? 'Hard' : 'Easy'}${G.practice ? ' · practice' : ''}`;
+  $('#endScore').innerHTML = `${G.total}<small> / ${maxTotal()}</small>`;
+  const f = G.total / maxTotal(); $('#endRank').textContent = RANKS.find(([t]) => f >= t)[1];
+  const st = streak();
+  $('#endStreak').textContent = (G.practice ? 'Practice run: your first score today stands. ' : '') + (st ? `Daily streak: ${st} day${st > 1 ? 's' : ''}.` : '');
+  $('#endGrid').textContent = shareText();
+  $('#copyMsg').textContent = ''; $('#copyFallback').hidden = true;
+  G.shareTxt = shareText();
+  store.set(`wavedle-end-${DAY}`, { mode: G.mode, practice: G.practice, total: G.total, max: maxTotal(), share: G.shareTxt,
+    modeTxt: $('#endMode').textContent, rank: $('#endRank').textContent, streak: $('#endStreak').textContent, posted: !official });
+  renderPips(); watchBoard(); if (official) postScore();
+  $('#end').scrollIntoView({ block: 'nearest', behavior: reduceMotion ? 'auto' : 'smooth' });
+}
+// The end screen stays until the player presses "Back to start", even across a reload of the page.
+function restoreEnd() {
+  const e = store.get(`wavedle-end-${DAY}`);
+  if (!e || !e.share) return false;
+  G.mode = e.mode; G.practice = e.practice; G.total = e.total; G.phase = 'end'; G.shareTxt = e.share; G.restoredMax = e.max;
+  $('#splash').hidden = true; $('#board').hidden = true; $('#end').hidden = false;
+  $('#endMode').textContent = e.modeTxt; $('#endScore').innerHTML = `${e.total}<small> / ${e.max}</small>`;
+  $('#endRank').textContent = e.rank; $('#endStreak').textContent = e.streak; $('#endGrid').textContent = e.share;
+  $('#score').textContent = e.total; $('#maxScore').textContent = e.max;
+  watchBoard();
+  return true;
+}
+$('#copyBtn').addEventListener('click', () => {
+  const txt = G.phase === 'end' && G.shareTxt ? G.shareTxt : shareText(), fb = $('#copyFallback');
+  const fallback = () => { fb.hidden = false; fb.value = txt; fb.focus(); fb.select(); $('#copyMsg').textContent = 'Copy the text below.'; };
+  try { navigator.clipboard.writeText(txt).then(() => { $('#copyMsg').textContent = 'Copied. Paste it in the class chat.'; }, fallback); } catch (e) { fallback(); }
+});
+
+/* class leaderboard: one collection per mode, one doc per person holding their first run of the day */
+let lb = null, lbUnsub = null;
+async function initBoard() {
+  if (!window.claude || !window.claude.use) return;
+  try {
+    const [db, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]);
+    if (!db || !user) return;
+    lb = { db, user, me: await user.id() };
+    if (G.phase === 'end') { watchBoard(); const e = store.get(`wavedle-end-${DAY}`); if (e && !e.posted && !e.practice) postScore(); }
+  } catch (e) {}
+}
+function watchBoard() {
+  const msg = $('#lbMsg');
+  $('#lbTitle').textContent = `Class leaderboard · #${DAYNUM} ${G.mode === 'hard' ? 'Hard' : 'Easy'}`;
+  if (!lb) { msg.textContent = window.claude && window.claude.use ? 'Sign in to claude.ai to see the class board.' : 'The class board works on the published page.'; return; }
+  if (lbUnsub) { try { lbUnsub(); } catch (e) {} }
+  msg.textContent = 'Connecting to the class board…'; $('#lbList').innerHTML = '';
+  const mode = G.mode;
+  lbUnsub = lb.db.collection(mode).where('day', '==', DAY).onSnapshot(snap => renderBoard(snap.docs, mode), () => { msg.textContent = 'The class board is unavailable right now.'; });
+}
+async function renderBoard(docs, mode) {
+  const msg = $('#lbMsg'), list = $('#lbList');
+  if (mode !== G.mode) return;
+  docs = docs.slice().sort((a, b) => (Number((b.data() || {}).score) || 0) - (Number((a.data() || {}).score) || 0)).slice(0, 30);
+  if (!docs.length) { msg.textContent = 'No scores yet today.'; list.innerHTML = ''; return; }
+  msg.textContent = 'First run of the day per person.';
+  let profiles = {};
+  try { profiles = await lb.user.profiles(docs.map(d => d.id)); } catch (e) {}
+  list.innerHTML = '';
+  docs.forEach((d, i) => {
+    const v = d.data() || {}, li = document.createElement('li');
+    if (d.id === lb.me) li.className = 'me';
+    const p = document.createElement('span'); p.className = 'p'; p.textContent = i + 1;
+    const wh = document.createElement('span'); wh.className = 'who'; wh.textContent = (profiles[d.id] && profiles[d.id].name || 'Someone') + (d.id === lb.me ? ' (you)' : '');
+    const s = document.createElement('span'); s.className = 's'; s.textContent = Number(v.score) || 0;
+    li.append(p, wh, s); list.append(li);
+  });
+}
+async function postScore() {
+  if (!lb) return;
+  try {
+    const ref = lb.db.collection(G.mode).doc(lb.me), cur = await ref.get();
+    const prev = cur.exists ? cur.data() || {} : null;
+    if (prev && prev.day === DAY) { $('#copyMsg').textContent = `Your score on today’s board is ${Number(prev.score) || 0}.`; return; }
+    const e0 = store.get(`wavedle-end-${DAY}`) || {}, share = G.shareTxt || shareText();
+    await ref.set({ day: DAY, score: G.total, max: e0.max || maxTotal(), grid: share.split('\n').slice(1).join('\n'), at: Date.now() });
+    const e = store.get(`wavedle-end-${DAY}`); if (e) { e.posted = true; store.set(`wavedle-end-${DAY}`, e); }
+    $('#copyMsg').textContent = 'Posted to the class board.';
+  } catch (e) { $('#copyMsg').textContent = 'Could not post to the class board. Your viewing access may not allow it.'; }
+}
+
+/* ---------------- splash hero: an R wave's E vector winding along B0 ---------------- */
+const hcv = $('#heroCv'), hctx = hcv.getContext('2d');
+let hW = 0, hH = 0, heroRaf = 0;
+function drawHero(now) {
+  if (!hW) return;
+  const c = hctx, t = reduceMotion ? 0 : now / 1000, mid = hH / 2, colE = css('--elec'), colI = css('--ion'), colK = css('--k');
+  c.clearRect(0, 0, hW, hH);
+  c.save(); c.strokeStyle = css('--line-2'); c.beginPath(); c.moveTo(0, mid); c.lineTo(hW, mid); c.stroke(); c.restore();
+  for (let x = 6; x < hW; x += 7) {
+    const p = x / hW * 4 * Math.PI - t * 2.2, y = Math.cos(p), z = -Math.sin(p);
+    c.save(); c.globalAlpha = .45 + .45 * (z + 1) / 2; c.strokeStyle = z > 0 ? colE : colI; c.lineWidth = 1.6;
+    c.beginPath(); c.moveTo(x, mid); c.lineTo(x + z * 3, mid - y * (hH * .36)); c.stroke(); c.restore();
+  }
+  small(c, 'B₀, k →', hW - 8, hH - 10, colK, 'right', 10.5);
+}
+function heroLoop(now) { drawHero(now); if (!$('#splash').hidden && !reduceMotion) heroRaf = requestAnimationFrame(heroLoop); }
+function startHero() { [hW, hH] = sizeCanvas(hcv, hctx); cancelAnimationFrame(heroRaf); heroRaf = requestAnimationFrame(heroLoop); }
+
+function renderSplash() {
+  $('#dayTag').textContent = `#${DAYNUM} · ${DAY}`;
+  for (const mode of ['easy', 'hard']) {
+    const d = doneToday(mode), el = $('#' + mode + 'Done');
+    el.hidden = !d; if (d) el.textContent = `Done today: ${d.score} / ${d.max}. Play again as practice.`;
+  }
+}
+
+/* ---------------- wiring ---------------- */
+function setVis(on) {
+  document.documentElement.dataset.vis = on ? 'high' : '';
+  $('#visBtn').setAttribute('aria-pressed', String(on));
+  try { localStorage.setItem('wavedle-vis', on ? 'high' : 'normal'); } catch (e) {}
+  drawStage(performance.now()); drawMotion(performance.now()); drawHero(performance.now());
+}
+{ let saved = null; try { saved = localStorage.getItem('wavedle-vis'); } catch (e) {} setVis(saved ? saved === 'high' : matchMedia('(prefers-contrast: more)').matches); }
+$('#visBtn').addEventListener('click', () => setVis(!hv()));
+$('#easyBtn').addEventListener('click', () => startRun('easy'));
+$('#hardBtn').addEventListener('click', () => startRun('hard'));
+$('#againBtn').addEventListener('click', () => {
+  try { localStorage.removeItem(`wavedle-end-${DAY}`); } catch (e) {}
+  if (lbUnsub) { try { lbUnsub(); } catch (e) {} lbUnsub = null; }
+  G.phase = 'splash'; $('#end').hidden = true; $('#splash').hidden = false; renderSplash(); renderPips(); startHero();
+  $('#splash').scrollIntoView({ block: 'nearest', behavior: reduceMotion ? 'auto' : 'smooth' });
+});
+$('#lockBtn').addEventListener('click', () => G.phase === 'bonus' ? lockBonus() : lockIn(false));
+$('#viewSw').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b || G.phase !== 'reveal') return;
+  G.revView = b.dataset.v;
+  $('#viewSw').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  renderCaption(); ensureLoop();
+});
+$('#moreBtn').addEventListener('click', () => {
+  if (G.phase !== 'predict' || G.extra) return;
+  G.extra = true; G.deadline += EXTRA_T * 1000; G.tFull = G.tLeft + EXTRA_T;
+  $('#moreBtn').hidden = true; $('#lockHint').textContent = `One more minute: −${EXTRA_PENALTY} points, no speed bonus.`;
+  tickClock();
+});
+$('#nextBtn').addEventListener('click', () => G.i + 1 < LEVELS.length ? startLevel(G.i + 1) : showEnd());
+new ResizeObserver(() => { if (!$('#board').hidden) { sizeStage(); fitEq(); if (!$('#motion').hidden) sizeMotion(); } if (!$('#splash').hidden) { [hW, hH] = sizeCanvas(hcv, hctx); drawHero(performance.now()); } }).observe(document.body);
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { drawStage(performance.now()); drawMotion(performance.now()); drawHero(performance.now()); });
+new MutationObserver(() => { drawStage(performance.now()); drawMotion(performance.now()); drawHero(performance.now()); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+document.fonts && document.fonts.ready.then(() => { if (!$('#board').hidden) sizeStage(); drawHero(performance.now()); });
+renderSplash(); if (!restoreEnd()) { renderPips(); startHero(); } initBoard();
+
+window.__game = { G, get LEVELS() { return LEVELS; }, set LEVELS(v) { LEVELS = v; }, makeLevel, rngFrom, LV, MODES, buildRun, keyOf, norm, gradeBuild, ALL_STATES, startRun, startLevel, lockIn, showEnd, shareText, TIER1, TIER2, TIER3, HARD_ID };
+})();
+</script>
+</body></html>
