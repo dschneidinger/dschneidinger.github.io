@@ -184,3 +184,24 @@ kbd {
   .choice { grid-template-columns: auto 1fr; }
   .choice .dest { grid-column: 2; white-space: normal; }
 }
+
+/* ---------- readable-font mode (toggle: Aa button) ----------
+   font-size-adjust matches the x-height of the retro fonts, so every size stays balanced. */
+html.clean {
+  --pix: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+html.clean body { font-size-adjust: 0.37; line-height: 1.4; }
+html.clean .chip,
+html.clean .pbtn,
+html.clean #kwrap,
+html.clean .choice .num,
+html.clean .jhead h1,
+html.clean .badge,
+html.clean .changed span,
+html.clean #journal h2,
+html.clean kbd,
+html.clean .title,
+html.clean .howto h3,
+html.clean .maphead { font-size-adjust: 0.62; letter-spacing: 0.02em; }
+html.clean .katex { font-size-adjust: none; }

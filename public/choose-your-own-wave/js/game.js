@@ -12,12 +12,15 @@
 
   /* ------------------------------------------------------------------ state */
   const SAVE_KEY = 'cyow-progress-v1';
-  const state = { completed: false, current: 'START', visited: ['START'], edges: [], guidedIndex: 0, sound: true, seenTitle: false };
+  const state = { completed: false, current: 'START', visited: ['START'], edges: [], guidedIndex: 0, sound: true, seenTitle: false, cleanFont: false };
   let arrivedVia = null, prevId = null;
 
   function load() {
     try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s && NODES[s.current]) Object.assign(state, s); } catch (e) { /* ignore */ }
   }
+  // canvas fonts follow the readable-font toggle
+  const CLEAN = '"Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif';
+  const vfont = px => state.cleanFont ? `${Math.round(px * 0.74)}px ${CLEAN}` : `${px}px VT323, monospace`;
   function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch (e) { /* ignore */ } }
   function resetProgress() {
     Object.assign(state, { completed: false, current: 'START', visited: ['START'], edges: [], guidedIndex: 0 });
@@ -378,7 +381,7 @@
     if (glow) g.shadowBlur = 0;
   }
   function textHD(g, s, x, y, col, size, align) {
-    g.font = `${size || 4}px "Press Start 2P", monospace`; g.fillStyle = col;
+    g.font = state.cleanFont ? `bold ${(size || 4) * 1.45}px ${CLEAN}` : `${size || 4}px "Press Start 2P", monospace`; g.fillStyle = col;
     g.textAlign = align || 'left'; g.textBaseline = 'middle'; g.fillText(s, x, y);
   }
   function labelKHD(g) {
@@ -649,7 +652,7 @@
     g.fillStyle = 'rgba(255,255,255,0.03)'; g.fillRect(xDiv, 0, w - xDiv, h);
     g.strokeStyle = 'rgba(200,200,255,0.25)'; g.lineWidth = sc; g.setLineDash([3 * sc, 3 * sc]);
     g.beginPath(); g.moveTo(0, yDiv); g.lineTo(w, yDiv); g.moveTo(xDiv, 0); g.lineTo(xDiv, h); g.stroke(); g.setLineDash([]);
-    g.font = `${big ? 26 : 13}px VT323, monospace`; g.textBaseline = 'top';
+    g.font = vfont(big ? 26 : 13); g.textBaseline = 'top';
     g.fillStyle = 'rgba(190,240,190,0.75)'; g.textAlign = 'left'; g.fillText('B₀ = 0', 4 * sc, yDiv - (big ? 26 : 13));
     g.fillStyle = 'rgba(210,180,255,0.8)'; g.fillText('B₀ ≠ 0', 4 * sc, yDiv + 2 * sc);
     g.fillStyle = 'rgba(220,220,255,0.55)';
@@ -672,7 +675,7 @@
       if (id === nxt && blink) { g.strokeStyle = C.yel; g.lineWidth = 2 * sc; g.beginPath(); g.arc(x, y, r + 4 * sc, 0, 7); g.stroke(); }
       if (!seen) {
         g.fillStyle = '#2a2e48'; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
-        g.fillStyle = '#7a7ea8'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = `${big ? 24 : 12}px VT323, monospace`; g.fillText('?', x, y + 1);
+        g.fillStyle = '#7a7ea8'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = vfont(big ? 24 : 12); g.fillText('?', x, y + 1);
       } else if (n.kind === 'osc') {
         g.fillStyle = C.mag; g.beginPath(); g.moveTo(x, y - r - 1); g.lineTo(x + r + 1, y); g.lineTo(x, y + r + 1); g.lineTo(x - r - 1, y); g.closePath(); g.fill();
         g.fillStyle = '#300a28'; g.fillRect(x - sc, y - sc, 2 * sc, 2 * sc);
@@ -684,7 +687,7 @@
         g.fillStyle = C.yel; g.fillRect(x - r * 0.8, y - r * 0.8, r * 1.6, r * 1.6);
       }
       if (big) {
-        g.font = '22px VT323, monospace'; g.textAlign = 'center'; g.textBaseline = 'top';
+        g.font = vfont(22); g.textAlign = 'center'; g.textBaseline = 'top';
         const label = seen ? n.name : '???';
         g.fillStyle = '#000'; g.fillText(label, x + 1, y + r + 5);
         g.fillStyle = seen ? (n.kind === 'osc' ? '#ffc0f0' : n.kind === 'wave' ? '#c0f4ff' : '#ffeeaa') : '#6a6e98';
@@ -746,7 +749,7 @@
     const g = c.getContext('2d'), Wc = c.width, Hc = c.height, L = 62, R = 16, T = 16, B = 50;
     const X = k => L + k / d.kMax * (Wc - L - R), Y = w => Hc - B - w / d.wMax * (Hc - T - B);
     g.fillStyle = '#0b0f22'; g.fillRect(0, 0, Wc, Hc);
-    g.font = '20px VT323, monospace'; g.textBaseline = 'middle';
+    g.font = vfont(20); g.textBaseline = 'middle';
     const ks = niceStep(d.kMax / 5), ws = niceStep(d.wMax / 5);
     g.strokeStyle = '#1c2246'; g.lineWidth = 1;
     for (let k = ks; k <= d.kMax + 1e-9; k += ks) { g.beginPath(); g.moveTo(X(k) + 0.5, T); g.lineTo(X(k) + 0.5, Hc - B); g.stroke(); }
@@ -758,11 +761,11 @@
     for (let w = 0; w <= d.wMax + 1e-9; w += ws) g.fillText(+w.toFixed(2), L - 6, Y(w));
     g.strokeStyle = '#8a8ab8'; g.lineWidth = 2;
     g.beginPath(); g.moveTo(L, T); g.lineTo(L, Hc - B); g.lineTo(Wc - R, Hc - B); g.stroke();
-    g.fillStyle = '#d8d8f4'; g.textAlign = 'center'; g.font = '22px VT323, monospace';
+    g.fillStyle = '#d8d8f4'; g.textAlign = 'center'; g.font = vfont(22);
     g.fillText(d.xLabel, (L + Wc - R) / 2, Hc - 14);
     g.save(); g.translate(16, (T + Hc - B) / 2); g.rotate(-Math.PI / 2); g.fillText(d.yLabel, 0, 0); g.restore();
     g.save(); g.beginPath(); g.rect(L + 1, T, Wc - L - R, Hc - B - T); g.clip();
-    g.font = '19px VT323, monospace';
+    g.font = vfont(19);
     (d.refs || []).forEach(r => {
       g.strokeStyle = 'rgba(200,170,255,0.55)'; g.lineWidth = 1.5; g.setLineDash([6, 5]); g.beginPath();
       if (r.type === 'h') {
@@ -799,7 +802,7 @@
     g.strokeStyle = C.yel; g.lineWidth = 3; g.beginPath(); g.moveTo(X(k0 - dk), Y(w0 - vg * dk)); g.lineTo(X(k0 + dk), Y(w0 + vg * dk)); g.stroke();
     g.fillStyle = '#000'; g.fillRect(mx - 6, my - 6, 12, 12); g.fillStyle = C.yel; g.fillRect(mx - 4, my - 4, 8, 8);
     g.restore();
-    g.font = '20px VT323, monospace'; g.textAlign = 'left';
+    g.font = vfont(20); g.textAlign = 'left';
     g.fillStyle = '#ff9de2'; g.fillText('┄ slope = v_φ', L + 10, T + 12);
     g.fillStyle = C.yel; g.fillText('━ slope = v_g', L + 10, T + 32);
     // readout
@@ -1045,6 +1048,14 @@
       seq.forEach(([f, d, t0, ty, v]) => tone(f, d, t0, ty, v));
     } catch (e) { /* audio unavailable */ }
   }
+  function applyFont() {
+    document.documentElement.classList.toggle('clean', !!state.cleanFont);
+    const b = $('#btnFont'); b.classList.toggle('on', !!state.cleanFont); b.setAttribute('aria-pressed', String(!!state.cleanFont));
+    textCache.clear();
+    if (document.fonts && document.fonts.load && state.cleanFont) document.fonts.load('16px "Atkinson Hyperlegible"').then(drawDispersion);
+    drawDispersion();
+  }
+  $('#btnFont').onclick = () => { state.cleanFont = !state.cleanFont; save(); applyFont(); sfx('click'); };
   function syncSoundBtn() { $('#btnSound').textContent = state.sound ? '♪' : '×'; $('#btnSound').title = state.sound ? 'Sound on' : 'Sound off'; }
   $('#btnSound').onclick = () => { state.sound = !state.sound; save(); syncSoundBtn(); sfx('click'); };
 
@@ -1062,6 +1073,7 @@
   function boot() {
     load(); syncSoundBtn();
     enterNode(false);
+    applyFont();
     requestAnimationFrame(frame);
     showTitle();
   }
