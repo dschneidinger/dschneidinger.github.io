@@ -544,24 +544,25 @@
       const curve = Array.from({ length: D }, (_, i) => { const x = (i + 0.5) * BW / D, ez = -v.hand * dd.im[i]; return { p: proj(x, dd.re[i], ez), z: ez }; });
       const N = 38, sp = BW / N, Xs = gridX(N), { re, im } = psiArr(Xs, tsec);
       const arrows = Array.from({ length: N }, (_, i) => { const x = (i + 0.5) * sp, ez = -v.hand * im[i]; return { x, tip: proj(x, re[i], ez), z: ez }; });
-      // electrons: cold response to a circular E is xi = (e/m) E / (w (w -+ wce)), parallel or antiparallel to E
-      const w = F.w0, fe = w / (w - v.hand * PHYS.WC);          // xi_e / (e E / m w^2)
-      const se = Math.sign(fe) * Math.min(1.25, Math.max(0.3, Math.abs(fe))) * 0.55;
+      // Show only the species whose natural gyration matches this polarization: electrons for R, ions for L.
+      // Both are driven to rotate with E; R: xi_e = (e/m) E / (w (w - wce)).  L: ions at w >> Omega_ci sit ~antiparallel to E.
+      const isR = v.hand > 0, w = F.w0, fe = w / (w - PHYS.WC);
+      const se = isR ? Math.sign(fe) * Math.min(1.25, Math.max(0.3, Math.abs(fe))) * 0.55 : -0.45;
+      const pcol = isR ? C.cyan : C.ion, pdim = isR ? 'rgba(95,225,255,0.55)' : 'rgba(255,154,60,0.55)';
       const NP = 13, spp = BW / NP, Xp = gridX(NP), pp = psiArr(Xp, tsec);
       const elec = Array.from({ length: NP }, (_, i) => { const x = (i + 0.5) * spp, ez = -v.hand * pp.im[i] * se; return { x, p: proj(x, pp.re[i] * se, ez), z: ez }; });
       const orbit = (x, rad, col) => {
         const pts = []; for (let j = 0; j <= 24; j++) { const a = j / 24 * 6.2832; pts.push(proj(x, Math.cos(a) * rad, Math.sin(a) * rad)); }
         polyline(g, pts, col, 0.2);
       };
-      for (let i = 0; i < NP; i++) orbit(elec[i].x, Math.abs(se) * Math.hypot(pp.re[i], pp.im[i]), 'rgba(95,225,255,0.18)');
-      const drawE = front => elec.forEach(e => { if ((e.z >= 0) === front) circ(g, e.p[0], e.p[1], front ? 0.95 : 0.75, front ? C.cyan : 'rgba(95,225,255,0.55)', front ? 2.5 : 0); });
+      for (let i = 0; i < NP; i++) orbit(elec[i].x, Math.abs(se) * Math.hypot(pp.re[i], pp.im[i]), isR ? 'rgba(95,225,255,0.18)' : 'rgba(255,154,60,0.18)');
+      const drawE = front => elec.forEach(e => { if ((e.z >= 0) === front) circ(g, e.p[0], e.p[1], (front ? 0.95 : 0.75) * (isR ? 1 : 1.3), front ? pcol : pdim, front ? 2.5 : 0); });
       // psi = exp(i(kx - wt)): right-hand rotation about B0 (+x) has E_z = Re(i psi) = -Im psi, hence ez = -hand * im
       // back half first, then the B0 axis, then the front half
       drawE(false);
       arrows.forEach(a => { if (a.z < 0) arrowHD(g, a.x, ym, a.tip[0], a.tip[1], 'rgba(160,140,60,0.75)', 0.45, 1.4); });
       for (let i = 1; i < D; i++) if (curve[i].z < 0) seg(g, curve[i - 1].p[0], curve[i - 1].p[1], curve[i].p[0], curve[i].p[1], 'rgba(170,110,170,0.6)', 0.45);
       seg(g, 0, ym, BW, ym, '#c9b8ff', 0.4);
-      for (let i = 0; i < NP; i++) circ(g, elec[i].x, ym, 0.6, '#8a3f2a');
       g.shadowColor = '#ffd0f0'; g.shadowBlur = 2;
       for (let i = 1; i < D; i++) if (curve[i].z >= 0) seg(g, curve[i - 1].p[0], curve[i - 1].p[1], curve[i].p[0], curve[i].p[1], '#ffd0f0', 0.6);
       g.shadowColor = C.yel;
@@ -569,9 +570,8 @@
       g.shadowBlur = 0;
       drawE(true);
       textHD(g, v.hand > 0 ? 'R' : 'L', 3, 4, '#ffd0f0', 4);
-      textHD(g, se < 0 ? 'e- move opposite E' : 'e- move with E', BW - 3, 4, '#8fb4d8', 3, 'right');
       labelKHD(g); labelB0HD(g, 'right');
-      legendHD(g, [EF, E_, ION0]);
+      legendHD(g, [EF, isR ? E_ : ION]);
       vignette(g); return;
     }
     if (v.type === 'string') {

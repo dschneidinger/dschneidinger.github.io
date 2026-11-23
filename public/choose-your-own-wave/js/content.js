@@ -336,7 +336,7 @@
       result: String.raw`n^2=\frac{c^2k^2}{\omega^2}=1-\frac{\omega_p^2/\omega^2}{1-\omega_c/\omega}`,
       extra: String.raw`Resonance at $\omega=\omega_c$ (electron cyclotron). Cutoff at $\omega_R$.<br><b>Whistler</b> branch ($\omega\ll\omega_c$): $\;\omega\approx\dfrac{k^2c^2\omega_c}{\omega_p^2}$.`,
       owNote: String.raw`<b class="wave">WAVE</b>, with two branches. On the whistler branch $v_g\approx2v_\phi\propto\sqrt\omega$: higher frequencies outrun lower ones. A lightning flash on the other side of the planet arrives as a <b>descending whistle</b>. Near $\omega_c$ the wave co-rotates with the electrons, pumps energy into them continuously, and $v_g\to0$ (the electron cyclotron resonance).`,
-      picture: String.raw`The portal shows the $\mathbf E_1$ vector rotating around $\mathbf B_0$ (along the screen). At any fixed point it turns right-handedly about $\mathbf B_0$, the same way the electrons gyrate. Careful: frozen in time, the same field traces a <i>left</i>-handed corkscrew in space, because the pattern depends on $kz-\omega t$. The electrons (cyan) circle with it: in step with $\mathbf E_1$ above $\omega_c$, opposite to it on the whistler branch below $\omega_c$. Flip the polarization and the resonance disappears.`,
+      picture: String.raw`The portal shows the $\mathbf E_1$ vector rotating around $\mathbf B_0$ (along the screen). At any fixed point it turns right-handedly about $\mathbf B_0$, the same way the electrons gyrate. Careful: frozen in time, the same field traces a <i>left</i>-handed corkscrew in space, because the pattern depends on $kz-\omega t$. Only the electrons (cyan) are shown, because they are the species this wave can resonate with, at $\omega_c$.`,
       disp: {
         xLabel: 'k c / ω_pe', yLabel: 'ω / ω_pe', kMax: 3, wMax: 3.4, vUnit: 'c',
         branches: [
@@ -368,7 +368,7 @@
       result: String.raw`n^2=\frac{c^2k^2}{\omega^2}=1-\frac{\omega_p^2/\omega^2}{1+\omega_c/\omega}`,
       extra: String.raw`Cutoff at $\omega_L$. <b>No electron resonance</b>. With mobile ions it would resonate at $\Omega_c$ (the ion cyclotron wave).`,
       owNote: String.raw`<b class="wave">WAVE.</b> One branch above $\omega_L$. A linearly polarized wave is R + L; since they have different $k$ at the same $\omega$, the plane of polarization rotates as it travels. That's <b>Faraday rotation</b>, used to measure $\int n_eB_\parallel\,dl$ in labs and in pulsar signals.`,
-      picture: String.raw`Watch the helix in the portal turn the opposite way from the R wave's. The electrons (cyan) still follow $\mathbf E_1$ around, but only with a small, sluggish orbit. Rotating against the electrons means the wave never “catches” them, so there's no electron resonance.`,
+      picture: String.raw`Watch the helix in the portal turn the opposite way from the R wave's. The ions (orange) are shown here: this polarization turns the same way ions naturally gyrate, so if the ions were allowed to move, this wave would resonate at $\Omega_{ci}$ (the ion cyclotron wave).`,
       disp: {
         xLabel: 'k c / ω_pe', yLabel: 'ω / ω_pe', kMax: 3, wMax: 3.4, vUnit: 'c',
         branches: [{ name: 'L wave', n2: n2L, wr: [WL + 1e-5, 8] }],
