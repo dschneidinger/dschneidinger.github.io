@@ -347,7 +347,6 @@ const TOGGLES = [
 ];
 function branchOptions(s) {
   if (s.B0 !== 'on' || s.character !== 'em' || s.ions !== 'frozen') return null;
-  if (s.kDir === 'perp' && s.polarization === 'Eperp') return [['high', 'Upper (ω > ω_R)'], ['low', 'Lower (ω_L < ω < ω_UH)']];
   return null;
 }
 const DEFAULT_STATE = { B0: 'off', kDir: 'par', character: 'es', polarization: 'R', ions: 'frozen', electrons: 'cold', ionTemp: 'cold', branch: 'high' };
@@ -358,6 +357,14 @@ function norm(partial = {}) {
   return s;
 }
 const vis = (id, s) => TG[id].visible(s);
+// the frequency range a setup's wave lives in. "_X" marks a subscript.
+// Frozen ions: ω far above every ion frequency. Mobile ions: the ion range that setup's wave needs.
+function freqTxt(s) {
+  const mag = s.B0 === 'on';
+  if (s.ions === 'frozen') return mag ? 'ω ≫ Ω_i, ω_pi' : 'ω ≫ ω_pi';
+  if (s.character === 'es') return mag && s.kDir === 'perp' ? 'Ω_i ≪ ω ≪ Ω_e' : 'ω ≪ ω_pi';
+  return mag ? 'ω ≪ Ω_i ≪ ω_pe' : 'ω ≪ ω_pi ≪ ω_pe';
+}
 // the answer key a state resolves to (resolveMode + answerKey)
 function keyOf(s) {
   const mobile = s.ions === 'mobile', mag = s.B0 === 'on', along = !mag || s.kDir === 'par';
@@ -383,8 +390,8 @@ const ALL_STATES = (() => {
 // why a setup has no wave (the Explorer's "none" cards)
 function noneReason(s) {
   if (s.character === 'es') return 'An ion acoustic wave is pushed by electron pressure and carried by ion inertia, c<sub>s</sub>² = <i class="v">KT</i><sub>e</sub>/<i class="v">M</i>. With cold electrons nothing pushes it, so there is no wave.';
-  if (s.B0 === 'off') return 'Mobile ions means ion timescales, ω ≪ ω<sub>pe</sub>. Below ω<sub>pe</sub> the electrons short out any transverse field, and without B₀ there is no Alfvén or magnetosonic wave to take over.';
-  return 'With E₁ ∥ B₀ the O mode is light in disguise: cut off below ω<sub>pe</sub>. Mobile ions means ω ≪ ω<sub>pe</sub>, and the ions add no low-frequency branch.';
+  if (s.B0 === 'off') return 'Here ω ≪ ω<sub>pi</sub> ≪ ω<sub>pe</sub>. Below ω<sub>pe</sub> the electrons short out any transverse field, and without B₀ there is no Alfvén or magnetosonic wave to take over.';
+  return 'With E₁ ∥ B₀ the O mode is light in disguise: cut off below ω<sub>pe</sub>. Here ω ≪ Ω<sub>i</sub> ≪ ω<sub>pe</sub>, and the ions add no low-frequency branch.';
 }
 
 /* ---------------- the 14 answers ---------------- */
@@ -461,7 +468,7 @@ LV.t1_noIA = { title: 'Does a wave exist?', vis: SETUP({ B0: 'off', character: '
 LV.t1_noEM = { title: 'Does a wave exist?', vis: SETUP({ B0: 'off', character: 'em', ions: 'mobile', electrons: 'warm' }), ans: 'none',
   calls: [modeCall('none', ['alfven', 'light', 'magnetosonic']),
     { q: 'Why?', opts: [['Below ω<sub>pe</sub> electrons short out transverse fields, and without B₀ there is no Alfvén wave', 'ok'], ['The ions are too heavy to carry an electromagnetic wave', ''], ['Electromagnetic waves need cold electrons', ''], ['Light can never travel through a plasma', '']] }],
-  why: 'Mobile ions means the ion timescale, far below ω<sub>pe</sub>. Light is cut off there. With a B₀ along <i class="v">k</i> the shear Alfvén wave would fill this gap; without B₀ nothing does.' };
+  why: 'The frequency range is ω ≪ ω<sub>pi</sub> ≪ ω<sub>pe</sub>, far below ω<sub>pe</sub>, where light is cut off. With a B₀ along <i class="v">k</i> the shear Alfvén wave would fill this gap; without B₀ nothing does.' };
 LV.t1_par = { title: 'Name this wave', vis: SETUP({ B0: 'on', kDir: 'par', character: 'es', ions: 'frozen', electrons: 'warm' }), ans: 'langmuir',
   calls: [modeCall('langmuir', ['plasmaOsc', 'ionAcoustic', 'R']),
     { q: 'What does B₀ do to this wave?', opts: [['Nothing: electrons move along B₀, so <b class="v">v</b> × <b class="v">B</b>₀ = 0', 'ok'], ['Raises the frequency to ω<sub>UH</sub>', ''], ['Makes the electrons gyrate in circles', ''], ['Cuts it off below Ω<sub>e</sub>', '']] }],
@@ -502,89 +509,89 @@ LV.t2_MS = { title: 'Name this wave', vis: SETUP({ B0: 'on', kDir: 'perp', chara
   why: 'With <i class="v">k</i> ⊥ B₀ the wave squeezes plasma and field lines together, so plasma pressure (<i class="v">v</i><sub>s</sub>) and magnetic pressure (<i class="v">v</i><sub>A</sub>) both push back. With cold electrons <i class="v">v</i><sub>s</sub> → 0 and the speed falls to <i class="v">v</i><sub>A</sub>.' };
 LV.t2_noO = { title: 'Does a wave exist?', vis: SETUP({ B0: 'on', kDir: 'perp', character: 'em', polarization: 'Epar', ions: 'mobile', electrons: 'cold' }), ans: 'none',
   calls: [modeCall('none', ['O', 'magnetosonic', 'alfven']),
-    { q: 'Why?', opts: [['E₁ ∥ B₀ makes it light in disguise, cut off below ω<sub>pe</sub>; mobile ions means ω ≪ ω<sub>pe</sub>', 'ok'], ['The ions short out E₁', ''], ['B₀ blocks waves with k ⊥ B₀', ''], ['It needs warm electrons', '']] }],
-  why: 'The O mode ignores B₀, so on ion timescales it behaves like light far below ω<sub>pe</sub>: no wave. Switching to E₁ ⊥ B₀ gives the magnetosonic wave; freezing the ions gives the O mode back.' };
+    { q: 'Why?', opts: [['E₁ ∥ B₀ makes it light in disguise, cut off below ω<sub>pe</sub>, and here ω ≪ Ω<sub>i</sub> ≪ ω<sub>pe</sub>', 'ok'], ['The ions short out E₁', ''], ['B₀ blocks waves with k ⊥ B₀', ''], ['It needs warm electrons', '']] }],
+  why: 'The O mode ignores B₀, so at ω ≪ Ω<sub>i</sub> ≪ ω<sub>pe</sub> it behaves like light far below its cutoff: no wave. Switching to E₁ ⊥ B₀ gives the magnetosonic wave; freezing the ions gives the O mode back.' };
 
 // Tier 3: representations (equations, plots, cutoffs, motion, the real world)
 const EQV = (html, lab) => ({ kind: 'eq', html, lab });
 const ss = (base, sub) => `${base}<span class="ss"><sup>2</sup><sub>${sub}</sub></span>`;
 LV.t3_eqW = { title: 'Which wave obeys this?', vis: EQV(EQ.whistler), ans: 'R',
-  given: 'Cold electrons, ions frozen. The dispersion relation above is all you get.',
+  given: 'Cold electrons, ions frozen (ω ≫ Ω<sub>i</sub>). The dispersion relation above is all you get.',
   calls: [modeCall('R', ['L', 'X', 'O']),
     { q: 'A lightning stroke excites all frequencies at once. What does a receiver far away hear?', opts: [['A falling tone: higher frequencies arrive first', 'ok'], ['A rising tone: lower frequencies arrive first', ''], ['A click: all frequencies arrive together', ''], ['Nothing: the wave is cut off', '']] }],
   why: 'The minus sign before Ω<sub>e</sub>/ω makes it the right-hand wave; below Ω<sub>e</sub> it is called the whistler. Its group velocity grows with ω (for ω ≪ Ω<sub>e</sub>, <i class="v">v</i><sub>g</sub> ∝ ω<sup>1/2</sup>), so the high tones outrun the low ones.' };
 LV.t3_eqX = { title: 'Which wave obeys this?', vis: EQV(EQ.X), ans: 'X',
-  given: 'Cold electrons, ions frozen, <i class="v">k</i> ⊥ B₀.',
+  given: 'Cold electrons, ions frozen (ω ≫ Ω<sub>i</sub>), <i class="v">k</i> ⊥ B₀.',
   calls: [modeCall('X', ['O', 'R', 'L']),
     { q: 'Where is its resonance?', opts: [[wuh, 'ok'], [wpe, ''], [wR, ''], [We, '']] }],
   why: 'The ω² − ω<sub>UH</sub>² in the denominator is the giveaway: the X mode’s index blows up at the upper hybrid frequency. The zeros of the right side give its cutoffs, ω<sub>L</sub> and ω<sub>R</sub>.' };
 LV.t3_eqIA = { title: 'Which wave obeys this?', vis: EQV(EQ.ionAcoustic), ans: 'ionAcoustic',
-  given: 'λ<sub>D</sub> is the Debye length; <i class="v">M</i> is the ion mass.',
+  given: 'λ<sub>D</sub> is the Debye length; <i class="v">M</i> is the ion mass. ω ≪ ω<sub>pe</sub>.',
   calls: [modeCall('ionAcoustic', ['langmuir', 'alfven', 'magnetosonic']),
     { q: 'For <i class="v">k</i>λ<sub>D</sub> ≫ 1 (and cold ions), the frequency approaches', opts: [[`the ion plasma frequency ${wpi}`, 'ok'], [wpe, ''], ['zero', ''], [Wi, '']] }],
   why: 'At long wavelength the ion acoustic wave is sound, ω = <i class="v">kc</i><sub>s</sub>. At short wavelength the electrons can no longer shield the ions, and the ions oscillate by themselves at ω<sub>pi</sub> = (<i class="v">n</i>e²/ε₀<i class="v">M</i>)<sup>1/2</sup>.' };
 LV.t3_eqMS = { title: 'Which wave obeys this?', vis: EQV(EQ.magnetosonic), ans: 'magnetosonic',
-  given: 'Mobile ions, warm electrons.',
+  given: 'Mobile ions, warm electrons, ω ≪ Ω<sub>i</sub> ≪ ω<sub>pe</sub>.',
   calls: [modeCall('magnetosonic', ['alfven', 'ionAcoustic', 'X']),
     { q: 'Which geometry produces it?', opts: [['k ⊥ B₀, E₁ ⊥ B₀', 'ok'], ['k ∥ B₀, E₁ ⊥ B₀', ''], ['k ⊥ B₀, E₁ ∥ B₀', ''], ['No B₀ at all', '']] }],
   why: 'Both <i class="v">v</i><sub>s</sub> and <i class="v">v</i><sub>A</sub> appear, so both plasma pressure and magnetic pressure act. That only happens when the wave compresses the field lines, with <i class="v">k</i> ⊥ B₀ and E₁ ⊥ B₀.' };
 LV.t3_cutL = { title: 'Which wave is this?', vis: EQV(`${wL} = ½ [ −${We} + √<span class="rad">${ss('Ω', 'e')} + 4${ss('<i>ω</i>', 'pe')}</span> ]`, 'Cutoff'), ans: 'L',
-  given: 'It travels along B₀, the ions are frozen, and it has no resonance.',
+  given: 'It travels along B₀, the ions are frozen (ω ≫ Ω<sub>i</sub>), and it has no resonance.',
   calls: [modeCall('L', ['R', 'O', 'alfven']),
     { q: 'At a cutoff, the index of refraction <i class="v">n</i> = <i class="v">ck</i>/ω goes to', opts: [['0: the wave reflects', 'ok'], ['∞: the wave is absorbed', ''], ['1: the plasma becomes transparent', ''], ['−1', '']] }],
   why: 'The −Ω<sub>e</sub> inside the bracket makes this the lower cutoff, ω<sub>L</sub>, which belongs to the left-hand wave along B₀. At a cutoff <i class="v">k</i> → 0 and the wave reflects; at a resonance <i class="v">k</i> → ∞.' };
 LV.t3_resWe = { title: 'Which wave is this?', vis: EQV(`${w} = ${We}&emsp;with&emsp;${k} ∥ <i>B</i><sub>0</sub>,&ensp; ${w} &lt; ${We}`, 'Resonance'), ans: 'R', noBonus: true,
-  given: 'Ions frozen. The wave propagates all the way down to ω → 0.',
+  given: 'Ions frozen (ω ≫ Ω<sub>i</sub>). The wave propagates all the way down to ω → 0.',
   calls: [modeCall('R', ['L', 'X', 'O']),
     { q: 'At a resonance, <i class="v">n</i> = <i class="v">ck</i>/ω goes to', opts: [['∞: the wavelength shrinks to zero and the wave is absorbed', 'ok'], ['0: the wave reflects', ''], ['1', ''], ['It stays finite', '']] }],
   why: 'A resonance at Ω<sub>e</sub> with <i class="v">k</i> ∥ B₀ means the field turns with the electrons and pumps them: the right-hand wave. Below Ω<sub>e</sub> it is also called the whistler.' };
 const PLOT = (id, note) => ({ kind: 'plot', id, note });
 LV.t3_plW = { title: 'Which wave is plotted?', vis: PLOT('whistler'), ans: 'R',
-  given: '<i class="v">k</i> ∥ B₀, ions frozen. Dashed diagonal: the light line ω = <i class="v">ck</i>.',
+  given: '<i class="v">k</i> ∥ B₀, ions frozen (ω ≫ Ω<sub>i</sub>). Dashed diagonal: the light line ω = <i class="v">ck</i>.',
   calls: [modeCall('R', ['L', 'alfven', 'X']),
     { q: 'The horizontal line the curve approaches is a', opts: [['resonance at Ω<sub>e</sub>', 'ok'], ['cutoff at Ω<sub>e</sub>', ''], ['cutoff at ω<sub>pe</sub>', ''], ['resonance at ω<sub>UH</sub>', '']] }],
   why: 'The curve starts at ω = 0 and flattens against Ω<sub>e</sub> as <i class="v">k</i> grows: a resonance. Only the right-hand wave does that along B₀; this part of it, below Ω<sub>e</sub>, is called the whistler.' };
 LV.t3_plX = { title: 'Which wave is plotted?', vis: PLOT('X'), ans: 'X',
-  given: '<i class="v">k</i> ⊥ B₀, ions frozen, cold electrons. Both branches are shown.',
+  given: '<i class="v">k</i> ⊥ B₀, ions frozen (ω ≫ Ω<sub>i</sub>), cold electrons. Both branches are shown.',
   calls: [modeCall('X', ['O', 'R', 'L']),
     { q: 'At large <i class="v">k</i> the lower branch flattens toward ω<sub>UH</sub>. There the wave becomes', opts: [['the upper hybrid oscillation, nearly electrostatic', 'ok'], ['an ordinary light wave', ''], ['a whistler', ''], ['evanescent', '']] }],
   why: 'Two branches with a stop band between ω<sub>UH</sub> and ω<sub>R</sub>, cutoffs at ω<sub>L</sub> and ω<sub>R</sub>: that is the X mode. Near its resonance <i class="v">k</i> is huge, E₁ lines up with <i class="v">k</i>, and the wave is the upper hybrid oscillation.' };
 LV.t3_plLight = { title: 'Which wave is plotted?', vis: PLOT('light'), ans: 'light',
-  given: 'B₀ = 0, ions frozen. Dashed diagonal: the light line ω = <i class="v">ck</i>.',
+  given: 'B₀ = 0, ions frozen (ω ≫ ω<sub>pi</sub>). Dashed diagonal: the light line ω = <i class="v">ck</i>.',
   calls: [modeCall('light', ['O', 'langmuir', 'plasmaOsc']),
     { q: 'At large <i class="v">k</i>, its group velocity approaches', opts: [['<i class="v">c</i>', 'ok'], ['0', ''], ['(3<i class="v">KT</i><sub>e</sub>/<i class="v">m</i>)<sup>1/2</sup>', ''], ['<i class="v">v</i><sub>A</sub>', '']] }],
   why: 'A hyperbola that starts at ω<sub>pe</sub> and hugs the light line: ω² = ω<sub>pe</sub>² + <i class="v">c</i>²<i class="v">k</i>². The Bohm–Gross curve has the same shape but approaches the much shallower line ω = (3<i class="v">KT</i><sub>e</sub>/<i class="v">m</i>)<sup>1/2</sup><i class="v">k</i>.' };
 LV.t3_plL = { title: 'Which wave is plotted?', vis: PLOT('L'), ans: 'L',
-  given: '<i class="v">k</i> ∥ B₀, ions frozen. Dashed diagonal: the light line.',
+  given: '<i class="v">k</i> ∥ B₀, ions frozen (ω ≫ Ω<sub>i</sub>). Dashed diagonal: the light line.',
   calls: [modeCall('L', ['R', 'O', 'X']),
     { q: 'Below the frequency where the curve starts, this wave is', opts: [['evanescent: it is cut off', 'ok'], ['resonant', ''], ['a right-hand wave', ''], ['unaffected', '']] }],
   why: 'It starts at ω<sub>L</sub> &lt; ω<sub>pe</sub> and has no resonance: the left-hand wave. The R wave starts higher, at ω<sub>R</sub> &gt; ω<sub>pe</sub>.' };
 const ANIMV = (mode, note) => ({ kind: 'anim', mode, note });
 LV.t3_anA = { title: 'Which wave is moving?', vis: ANIMV('alfven'), ans: 'alfven',
-  given: 'Watch the field lines and both species. Ions are mobile.',
+  given: 'Watch the field lines and both species. ω ≪ Ω<sub>i</sub> ≪ ω<sub>pe</sub>.',
   calls: [modeCall('alfven', ['magnetosonic', 'ionAcoustic', 'light']),
     { q: 'What pulls the field lines back?', opts: [['Magnetic tension, like a plucked string', 'ok'], ['Magnetic pressure', 'near'], ['Electron pressure', ''], ['Space charge', '']] }],
   why: 'k ∥ B₀ and the field lines bend sideways, carrying both species with them: the shear Alfvén wave. Bending lines is tension. Squeezing them together (magnetic pressure) is the magnetosonic wave.' };
 LV.t3_anMS = { title: 'Which wave is moving?', vis: ANIMV('magnetosonic'), ans: 'magnetosonic',
-  given: 'B₀ points out of the screen (⊙). Watch how the ⊙ marks bunch up.',
+  given: 'B₀ points out of the screen (⊙). Watch how the ⊙ marks bunch up. ω ≪ Ω<sub>i</sub> ≪ ω<sub>pe</sub>.',
   calls: [modeCall('magnetosonic', ['ionAcoustic', 'alfven', 'X']),
     { q: 'Does the wave change |<b class="v">B</b>|?', opts: [['Yes: B₁ ∥ B₀, compressed with the plasma', 'ok'], ['No: it only bends the field lines', ''], ['No: B₁ = 0', ''], ['Yes, but the density stays fixed', '']] }],
   why: 'Both species compress along <i class="v">k</i> and the frozen-in field compresses with them, so B₁ is along B₀. An ion acoustic wave compresses the plasma too, but it has no B₀ in it and B₁ = 0.' };
 LV.t3_anIA = { title: 'Which wave is moving?', vis: ANIMV('ionAcoustic'), ans: 'ionAcoustic',
-  given: 'No B₀. Watch which species move.',
+  given: 'No B₀, ω ≪ ω<sub>pi</sub>. Watch which species move.',
   calls: [modeCall('ionAcoustic', ['langmuir', 'light', 'magnetosonic']),
     { q: 'Is it electrostatic or electromagnetic?', opts: [['Electrostatic: the motion is along k, so B₁ = 0', 'ok'], ['Electromagnetic: B₁ ≠ 0', ''], ['Both equally', ''], ['Neither', '']] }],
   why: 'Both species bunch up together along <i class="v">k</i>: a sound wave in the plasma. In a Langmuir wave only the electrons move.' };
 LV.t3_anR = { title: 'Which wave is moving?', vis: ANIMV('R'), ans: 'R',
-  given: 'B₀ runs left to right along <i class="v">k</i>. The inset looks along B₀. ω is above ω<sub>R</sub>; ions frozen.',
+  given: 'B₀ runs left to right along <i class="v">k</i>. Only the electrons are shown; the inset looks along B₀.',
   calls: [modeCall('R', ['L', 'X', 'O']),
     { q: 'Compared with electron gyration, the electrons in the wave turn', opts: [['the same way', 'ok'], ['the opposite way', ''], ['not at all: they move in straight lines', ''], ['the same way, but only below Ω<sub>i</sub>', '']] }],
   why: 'In the inset the fluid electrons go round in the same sense as their free gyration (clockwise looking along B₀): a right-hand wave: the R wave.' };
 LV.t3_anL = { title: 'Which wave is moving?', vis: ANIMV('L'), ans: 'L',
-  given: 'B₀ runs left to right along <i class="v">k</i>. The inset looks along B₀. ω is above ω<sub>L</sub>; ions frozen.',
+  given: 'B₀ runs left to right along <i class="v">k</i>. Only the ions are shown; the inset looks along B₀.',
   calls: [modeCall('L', ['R', 'X', 'O']),
-    { q: 'Compared with electron gyration, the electrons in the wave turn', opts: [['the opposite way', 'ok'], ['the same way', ''], ['not at all', ''], ['randomly', '']] }],
-  why: 'The fluid electrons turn counterclockwise looking along B₀, against their own gyration. That is the left-hand wave, which turns the way ions gyrate.' };
+    { q: 'Compared with ion gyration, the ions in the wave turn', opts: [['the same way', 'ok'], ['the opposite way', ''], ['not at all', ''], ['randomly', '']] }],
+  why: 'The fluid ions turn counterclockwise looking along B₀, the same way they gyrate. That is the left-hand wave: E₁ turns with the ions, against the electrons.' };
 LV.t3_anLH = { title: 'Which wave is moving?', vis: ANIMV('lowerHybrid'), ans: 'lowerHybrid',
   given: 'B₀ points out of the screen (⊙). Watch which way each species moves.',
   calls: [modeCall('lowerHybrid', ['upperHybrid', 'magnetosonic', 'ionAcoustic']),
@@ -597,7 +604,7 @@ LV.t3_stIono = { title: 'Which wave is this?', vis: STORY('At night, AM radio st
     { q: 'Why does FM get through?', opts: [['Its frequency is above the ionosphere’s ω<sub>pe</sub>', 'ok'], ['Its wavelength is longer', ''], ['It is circularly polarized', ''], ['FM waves are electrostatic', '']] }],
   why: 'The ionosphere’s plasma frequency is a few MHz. AM is below it and is cut off and reflected; FM is above it and passes into space.' };
 LV.t3_stInt = { title: 'Which wave is this?', vis: STORY('To measure a tokamak’s density, a microwave beam crosses the plasma at right angles to B₀, polarized with E₁ along B₀. The phase shift gives the line-averaged density.'), ans: 'O',
-  given: 'Ions are frozen at microwave frequencies.',
+  given: 'Microwaves: ω ≫ Ω<sub>i</sub>, ω<sub>pi</sub>, so the ions are frozen.',
   calls: [modeCall('O', ['X', 'light', 'R']),
     { q: 'Why choose that polarization?', opts: [['Its index of refraction depends only on density, not on B₀', 'ok'], ['It has no cutoff', ''], ['It resonates at Ω<sub>e</sub>', ''], ['It travels faster than <i class="v">c</i>', '']] }],
   why: '<i class="v">k</i> ⊥ B₀ with E₁ ∥ B₀ is the O mode: <i class="v">n</i>² = 1 − ω<sub>pe</sub>²/ω² depends on density alone. Calling it light gets partial credit; it has the same index, but there is a B₀.' };
@@ -613,21 +620,6 @@ const TIER3 = ['t3_eqW', 't3_eqX', 't3_eqIA', 't3_eqMS', 't3_cutL', 't3_resWe', 
 // Hard's identification levels: the Easy pool, minus dispersion plots and levels whose picture is the animation
 const HARD_ID = [...TIER1, ...TIER2, ...TIER3].filter(id => LV[id].vis.kind !== 'plot' && LV[id].vis.kind !== 'anim');
 const BUILD_TARGETS = ['plasmaOsc', 'langmuir', 'ionAcoustic', 'light', 'O', 'X', 'R', 'L', 'alfven', 'magnetosonic', 'none'];
-const BUILD_CLUE = {
-  plasmaOsc: 'Electrons oscillate at exactly ω<sub>pe</sub>, and the oscillation goes nowhere.',
-  langmuir: 'An electron oscillation that propagates, with ω² = ω<sub>pe</sub>² + 3<i class="v">k</i>²<i class="v">KT</i><sub>e</sub>/<i class="v">m</i>.',
-  ionAcoustic: 'Sound in a plasma.',
-  upperHybrid: 'Electrons oscillate across B₀ at ω<sub>UH</sub>.',
-  lowerHybrid: 'Both species oscillate across B₀ at ω<sub>LH</sub>.',
-  light: 'A transverse wave with ω² = ω<sub>pe</sub>² + <i class="v">c</i>²<i class="v">k</i>² and no magnetic field anywhere.',
-  O: 'Same dispersion as light, but there is a B₀ it never feels.',
-  X: 'Cutoffs at ω<sub>L</sub> and ω<sub>R</sub>, resonance at ω<sub>UH</sub>.',
-  R: 'Circularly polarized along B₀, turning with the electrons. Lightning makes it whistle.',
-  L: 'Circularly polarized along B₀, turning against the electrons.',
-  alfven: 'A plucked magnetic field line.',
-  magnetosonic: 'Compresses the plasma and the field lines together.',
-  none: 'Find a setup where no wave propagates at all.',
-};
 // bonus questions: asked only after the wave is named correctly, about the oscillation at its resonance
 const BONUS_Q = {
   R: { q: 'Raise the frequency until ω → Ω<sub>e</sub>. What resonant oscillation appears?',
@@ -746,6 +738,12 @@ function label(c, txt, x, y, col, size = 15, align = 'center', italic = true) {
   c.save(); c.fillStyle = col; c.font = `${italic ? 'italic ' : ''}600 ${size}px "STIX Two Text", Georgia, serif`; c.textAlign = align; c.textBaseline = 'middle'; c.fillText(txt, x, y); c.restore();
 }
 // mono caption; "_X" sets the letters X (up to a space) as a subscript, so "ω_UH" reads as ω with UH below
+// width small() would draw txt at
+function smallW(c, txt, size = 11.5) {
+  size *= TS(); c.save(); let w = 0;
+  txt.split(/(_[A-Za-z]+)/).forEach(p => { if (!p) return; const b = p[0] === '_'; c.font = `500 ${b ? size * .72 : size}px "IBM Plex Mono", ui-monospace, monospace`; w += c.measureText(b ? p.slice(1) : p).width; });
+  c.restore(); return w;
+}
 function small(c, txt, x, y, col, align = 'left', size = 11.5) {
   size *= TS();
   c.save(); c.fillStyle = col; c.textBaseline = 'middle';
@@ -777,9 +775,9 @@ const ANIM = {
   lowerHybrid: { B: 'z', e: p => [.12 * S(p), C(p), 0], i: p => [S(p), 0, 0] },
   light: { B: 'off', e: p => [0, S(p), 0] },
   O: { B: 'y', e: p => [0, S(p), 0] },
-  R: { B: 'x', e: p => [0, C(p), -S(p)], helix: 'R' },
+  R: { B: 'x', e: p => [0, C(p), -S(p)], helix: 'R', only: 'e' },
   whistler: { B: 'x', e: p => [0, C(p), -S(p)], helix: 'R' },
-  L: { B: 'x', e: p => [0, C(p), S(p)], helix: 'L' },
+  L: { B: 'x', i: p => [0, C(p), S(p)], helix: 'L', only: 'i' },
   alfven: { B: 'x', e: p => [0, S(p), 0], i: p => [0, S(p), 0], lines: true },
   magnetosonic: { B: 'z', e: p => [S(p), 0, 0], i: p => [S(p), 0, 0], frozenB: true },
 };
@@ -839,8 +837,9 @@ function drawAnim(mode, t, c, W, H, top = 78, info = null) {
     c.fillStyle = alpha(css('--panel'), .85); c.fillRect(x0 - 10, ly - fs / 2 - 3, tw + 8, fs + 6); c.restore();
     small(c, nm, x0 - 6, ly, col, 'left');
   };
-  drawSp(A.e, yE, colE, 'electrons');
-  drawSp(A.i, yI, colI, 'ions');
+  const yMid = (yE + yI) / 2;
+  if (A.only !== 'i') drawSp(A.e, A.only ? yMid : yE, colE, 'electrons');
+  if (A.only !== 'e') drawSp(A.i, A.only ? yMid : yI, colI, 'ions');
   // k
   const ky = H - 22 - foot;
   arrow(c, x0, ky, x0 + 70, ky, colK, H2 ? 3 : 2, 9); label(c, 'k', x0 + 84, ky, colK, 17);
@@ -848,7 +847,9 @@ function drawAnim(mode, t, c, W, H, top = 78, info = null) {
   small(c, info && info.B0 === 'on' ? (info.kDir === 'par' ? (nar ? 'along B₀ →' : 'along B₀ · wave moves →') : (nar ? 'across B₀ →' : 'across B₀ · wave moves →')) : 'wave moves →', x0 + 100, ky, ink3);
   if (info) {
     const narrow = W < 420, sz = narrow ? 10.5 : 11.5;
-    small(c, fieldInfo(info, narrow), x0 - 6, H - 42, css('--E'), 'left', sz);
+    const fi = fieldInfo(info, narrow);
+    small(c, fi, x0 - 6, H - 42, css('--E'), 'left', sz);
+    small(c, ' · ' + freqTxt(info), x0 - 6 + smallW(c, fi, sz), H - 42, ink3, 'left', sz);
     const sp = 'electrons ' + info.electrons, ip = 'ions ' + info.ions + (info.ions === 'mobile' ? ', ' + info.ionTemp : '');
     c.save(); c.font = `500 ${sz * TS()}px "IBM Plex Mono", ui-monospace, monospace`; const w1 = c.measureText(sp).width, w2 = c.measureText(' · ').width; c.restore();
     small(c, sp, x0 - 6, H - 17, colE, 'left', sz);
@@ -861,15 +862,17 @@ function drawAnim(mode, t, c, W, H, top = 78, info = null) {
     c.save(); c.strokeStyle = css('--line-2'); c.lineWidth = 1; c.strokeRect(W - 12 - inset, top, inset - 4, bot - top); c.restore();
     small(c, inset < 140 ? 'along B₀' : 'looking along B₀', cx, top + 14, ink3, 'center', 10.5);
     odot(c, cx, cy, 7, colB, false, 1.4);
-    // electron gyration sense: clockwise looking along B0
+    // gyration sense looking along B0: electrons clockwise, ions counterclockwise. The inset follows the species shown.
+    const ion = A.only === 'i', colS = ion ? colI : colE;
     c.save(); c.strokeStyle = alpha(colB, .8); c.setLineDash([3, 4]); c.lineWidth = 1.3; c.beginPath(); c.arc(cx, cy, R + 14, -Math.PI * .85, -Math.PI * .15); c.stroke(); c.restore();
-    const ea = -Math.PI * .15; arrow(c, cx + (R + 14) * C(ea - .25), cy + (R + 14) * S(ea - .25), cx + (R + 14) * C(ea), cy + (R + 14) * S(ea), alpha(colB, .9), 1.3, 7);
-    small(c, 'e⁻ gyration', cx, cy - R - 30, colB, 'center', 10.5);
-    // the fluid electron at x = x0: screen = (z, y)
-    const d = A.e(ph(x0));
-    c.save(); c.strokeStyle = alpha(colE, .3); c.beginPath(); c.arc(cx, cy, R, 0, 7); c.stroke(); c.restore();
-    c.save(); c.fillStyle = colE; c.beginPath(); c.arc(cx + d[2] * R, cy - d[1] * R, H2 ? 7 : 6, 0, 7); c.fill(); c.restore();
-    small(c, 'fluid e⁻', cx, cy + R + 22, colE, 'center', 10.5);
+    const ea = ion ? -Math.PI * .85 : -Math.PI * .15, eb = ion ? ea + .25 : ea - .25;
+    arrow(c, cx + (R + 14) * C(eb), cy + (R + 14) * S(eb), cx + (R + 14) * C(ea), cy + (R + 14) * S(ea), alpha(colB, .9), 1.3, 7);
+    small(c, ion ? 'ion gyration' : 'e⁻ gyration', cx, cy - R - 30, colB, 'center', 10.5);
+    // the fluid element at x = x0: screen = (z, y)
+    const d = (ion ? A.i : A.e)(ph(x0));
+    c.save(); c.strokeStyle = alpha(colS, .3); c.beginPath(); c.arc(cx, cy, R, 0, 7); c.stroke(); c.restore();
+    c.save(); c.fillStyle = colS; c.beginPath(); c.arc(cx + d[2] * R, cy - d[1] * R, H2 ? 7 : 6, 0, 7); c.fill(); c.restore();
+    small(c, ion ? 'fluid ion' : 'fluid e⁻', cx, cy + R + 22, colS, 'center', 10.5);
   }
 }
 
@@ -905,7 +908,7 @@ function drawSetup(s) {
     arrow(c, ex + r * .35 * C(a0), ey + r * S(a0), ex + r * .35 * C(a1), ey + r * S(a1), colE, H2 ? 3 : 2, 10);
     label(c, cw ? 'E₁ turns with e⁻ (R)' : 'E₁ turns with ions (L)', ex, ey - r - 18, colE, 15);
   }
-  if (s.B0 === 'on' && s.character === 'em' && vis('branch', s)) small(c, s.branch === 'low' ? (s.kDir === 'par' ? 'branch: ω < Ωₑ' : 'branch: ω_L < ω < ω_UH') : 'branch: ω > ω_R', W / 2, top + 6, ink2, 'center', 12);
+  small(c, freqTxt(s), W / 2, top + 6, ink2, 'center', 12);
   // species badges
   const sp = [['electrons ' + s.electrons, css('--elec')], ['ions ' + s.ions + (s.ions === 'mobile' ? ', ' + s.ionTemp : ''), css('--ion')]];
   small(c, sp[0][0], W - 16, H - 38, sp[0][1], 'right', 12); small(c, sp[1][0], W - 16, H - 16, sp[1][1], 'right', 12);
@@ -1063,6 +1066,7 @@ function setupRows(s) {
   const row = (col, key, val) => `<li><span class="k"><i class="sw" style="background:var(${col})"></i>${key}</span><span class="val">${val}</span></li>`;
   return '<ul class="setup">' +
     row('--B', 'B₀', s.B0 === 'on' ? 'on' : 'off') +
+    row('--ink-3', 'ω', subHtml(freqTxt(s))) +
     row('--k', 'k', s.B0 === 'on' ? (s.kDir === 'par' ? 'along B₀ (k ∥ B₀)' : 'across B₀ (k ⊥ B₀)') : 'any direction (no B₀)') +
     row('--E', 'E₁', subHtml(fieldInfo(s).replace('E₁ ', ''))) +
     row('--elec', 'electrons', s.electrons) +
@@ -1073,11 +1077,11 @@ function renderGiven(L) {
   const g = $('#given');
   if (L.build) {
     $('#givenTitle').textContent = 'Target';
-    g.innerHTML = `<p style="margin:0 0 6px;color:var(--ink);font-size:16px;font-weight:600">${MODES[L.ans].name}</p><p style="margin:0">${BUILD_CLUE[L.ans]}</p>`;
+    g.innerHTML = `<p style="margin:0;color:var(--ink);font-size:16px;font-weight:600">${MODES[L.ans].name}</p>`;
     return;
   }
   $('#givenTitle').textContent = L.vis.kind === 'setup' ? 'Given · the setup in the picture' : 'Given';
-  if (L.vis.kind === 'setup') g.innerHTML = setupRows(L.vis.state) + '<p>Each colour matches its label in the picture. Frozen ions means ω far above the ion frequencies.</p>';
+  if (L.vis.kind === 'setup') g.innerHTML = setupRows(L.vis.state) + '<p>Each colour matches its label in the picture. The ω row is the frequency range the wave lives in.</p>';
   else g.innerHTML = `<p style="margin:0;color:var(--ink-2);font-size:14px">${L.given || ''}</p>`;
 }
 
